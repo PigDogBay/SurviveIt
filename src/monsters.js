@@ -10,10 +10,10 @@ const RADIUS = 0.5;
 const WANDER_SPEED = 1.4;
 // Faster than walking (4.5) but slower than running (8), so the minion has to run.
 const CHASE_SPEED = 5.5;
-const NOTICE_DISTANCE = 22;
-const GIVE_UP_DISTANCE = 34;
+const NOTICE_DISTANCE = 32;
+const GIVE_UP_DISTANCE = 45;
 const ATTACK_DISTANCE = 1.6;
-const ATTACK_DAMAGE = 15;
+const ATTACK_DAMAGE = 25;
 const ATTACK_COOLDOWN = 1.2;
 
 const skin = new THREE.MeshStandardMaterial({ color: 0x1c1a1f, roughness: 0.85 });

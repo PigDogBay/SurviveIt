@@ -4,7 +4,7 @@ import { heightAt, WORLD_RADIUS } from './terrain.js';
 
 const HEAL_AMOUNT = 35;
 const PICKUP_DISTANCE = 1.3;
-const COUNT = 24;
+const COUNT = 12;
 
 // A white first-aid box with a red cross on every side.
 function medkitTexture() {
