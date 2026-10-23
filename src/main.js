@@ -4,6 +4,8 @@ import { createForest, createFireflies } from './forest.js';
 import { createPlayer } from './player.js';
 import { createHealth } from './health.js';
 import { createMedkits } from './medkits.js';
+import { createMonsters } from './monsters.js';
+import { createCollisionGrid } from './collision.js';
 
 const NIGHT = 0x0b1418;
 
@@ -59,7 +61,11 @@ scene.add(fireflies.points);
 const medkits = createMedkits(forest.colliders);
 scene.add(medkits.group);
 
-const player = createPlayer(camera, document.body, forest.colliders);
+const collisions = createCollisionGrid(forest.colliders);
+const monsters = createMonsters(collisions);
+scene.add(monsters.group);
+
+const player = createPlayer(camera, document.body, collisions);
 
 const menu = document.getElementById('menu');
 const gameover = document.getElementById('gameover');
@@ -92,7 +98,7 @@ function showMessage(text) {
 window.addEventListener('keydown', (event) => {
   if (!player.controls.isLocked) return;
   if (event.code === 'KeyF') torch.visible = !torch.visible;
-  // Until there are monsters, K hurts the minion so med kits can be tested.
+  // K hurts the minion so med kits can be tested without finding a monster.
   // Only works with `npm run dev`, not in a production build.
   if (import.meta.env.DEV && event.code === 'KeyK') health.damage(20);
 });
@@ -111,6 +117,8 @@ renderer.setAnimationLoop((timestamp) => {
   player.update(delta);
   fireflies.update(timer.getElapsed());
   if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
+  // Monsters freeze while the game is paused, so pausing is safe.
+  if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);

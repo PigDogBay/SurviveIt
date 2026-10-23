@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { heightAt, WORLD_RADIUS } from './terrain.js';
+import { heightAt } from './terrain.js';
 
 // Minions are short, so the camera sits low.
 const EYE_HEIGHT = 1.25;
@@ -10,7 +10,7 @@ const RUN_SPEED = 8;
 const JUMP_SPEED = 6;
 const GRAVITY = 18;
 
-export function createPlayer(camera, domElement, colliders) {
+export function createPlayer(camera, domElement, collisions) {
   const controls = new PointerLockControls(camera, domElement);
   const keys = new Set();
   const velocity = new THREE.Vector3();
@@ -33,27 +33,6 @@ export function createPlayer(camera, domElement, colliders) {
   window.addEventListener('keyup', (event) => keys.delete(event.code));
   // Stop moving if the window loses focus while a key is held.
   window.addEventListener('blur', () => keys.clear());
-
-  function pushOutOfColliders(position) {
-    for (const { x, z, radius } of colliders) {
-      const dx = position.x - x;
-      const dz = position.z - z;
-      const minDistance = radius + PLAYER_RADIUS;
-      const distanceSq = dx * dx + dz * dz;
-      if (distanceSq < minDistance * minDistance && distanceSq > 1e-6) {
-        const distance = Math.sqrt(distanceSq);
-        position.x = x + (dx / distance) * minDistance;
-        position.z = z + (dz / distance) * minDistance;
-      }
-    }
-
-    const distanceFromCentre = Math.hypot(position.x, position.z);
-    const limit = WORLD_RADIUS - 2;
-    if (distanceFromCentre > limit) {
-      position.x *= limit / distanceFromCentre;
-      position.z *= limit / distanceFromCentre;
-    }
-  }
 
   function update(delta) {
     if (!controls.isLocked) return;
@@ -81,7 +60,7 @@ export function createPlayer(camera, domElement, colliders) {
     const position = camera.position;
     position.x += velocity.x * delta;
     position.z += velocity.z * delta;
-    pushOutOfColliders(position);
+    collisions.pushOut(position, PLAYER_RADIUS);
 
     groundY = heightAt(position.x, position.z);
     verticalSpeed -= GRAVITY * delta;
