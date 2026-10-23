@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { createRandom, range } from './random.js';
 import { heightAt, WORLD_RADIUS } from './terrain.js';
 
-const COUNT = 26;
+const COUNT = 70;
 // Monsters never start this close to the player's starting clearing.
-const SAFE_START = 35;
+const SAFE_START = 25;
 const RADIUS = 0.5;
 
 const WANDER_SPEED = 1.4;
