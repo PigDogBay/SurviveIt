@@ -24,7 +24,90 @@ canvas {
   pointer-events: none;
 }
 
-#menu {
+#health {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  font-weight: 700;
+  text-shadow: 0 1px 3px #000;
+}
+
+#health .heart {
+  font-size: 1.6rem;
+  color: #e8343c;
+}
+
+#health .track {
+  width: 240px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+#health-fill {
+  height: 100%;
+  transition: width 0.25s ease-out, background 0.25s;
+}
+
+#health.low .heart {
+  animation: pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  to {
+    transform: scale(1.35);
+  }
+}
+
+#flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#flash.hurt {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(220, 20, 20, 0.6));
+  animation: flash 0.5s ease-out;
+}
+
+#flash.heal {
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(60, 220, 90, 0.45));
+  animation: flash 0.6s ease-out;
+}
+
+@keyframes flash {
+  from {
+    opacity: 1;
+  }
+}
+
+#message {
+  position: fixed;
+  top: 58%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-shadow: 0 2px 6px #000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#message.show {
+  opacity: 1;
+}
+
+#menu,
+#gameover {
   position: fixed;
   inset: 0;
   display: flex;
@@ -35,8 +118,19 @@ canvas {
   background: radial-gradient(ellipse at center, rgba(10, 20, 15, 0.55), rgba(0, 0, 0, 0.9));
 }
 
-#menu.hidden {
+#menu.hidden,
+#gameover.hidden {
   display: none;
+}
+
+#gameover {
+  background: radial-gradient(ellipse at center, rgba(60, 0, 0, 0.6), rgba(0, 0, 0, 0.92));
+}
+
+#gameover h1 {
+  margin: 0 0 0.5rem;
+  font-size: 3.5rem;
+  color: #e8343c;
 }
 
 #menu h1 {
@@ -57,7 +151,8 @@ canvas {
   line-height: 1.5;
 }
 
-#play {
+#play,
+#retry {
   margin: 1.5rem 0;
   padding: 0.9rem 2.2rem;
   font-size: 1.3rem;
@@ -69,7 +164,8 @@ canvas {
   cursor: pointer;
 }
 
-#play:hover {
+#play:hover,
+#retry:hover {
   background: #ffe47a;
 }
 

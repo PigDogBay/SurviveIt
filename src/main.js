@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { createTerrain } from './terrain.js';
 import { createForest, createFireflies } from './forest.js';
 import { createPlayer } from './player.js';
+import { createHealth } from './health.js';
+import { createMedkits } from './medkits.js';
 
 const NIGHT = 0x0b1418;
 
@@ -54,15 +56,45 @@ scene.add(forest.group);
 const fireflies = createFireflies();
 scene.add(fireflies.points);
 
+const medkits = createMedkits(forest.colliders);
+scene.add(medkits.group);
+
 const player = createPlayer(camera, document.body, forest.colliders);
 
 const menu = document.getElementById('menu');
+const gameover = document.getElementById('gameover');
+let dead = false;
+
+const health = createHealth({
+  onDeath() {
+    dead = true;
+    player.controls.unlock();
+    gameover.classList.remove('hidden');
+  },
+});
+
 document.getElementById('play').addEventListener('click', () => player.controls.lock());
+document.getElementById('retry').addEventListener('click', () => window.location.reload());
 player.controls.addEventListener('lock', () => menu.classList.add('hidden'));
-player.controls.addEventListener('unlock', () => menu.classList.remove('hidden'));
+player.controls.addEventListener('unlock', () => {
+  if (!dead) menu.classList.remove('hidden');
+});
+
+const message = document.getElementById('message');
+let messageTimeout;
+function showMessage(text) {
+  message.textContent = text;
+  message.classList.add('show');
+  clearTimeout(messageTimeout);
+  messageTimeout = setTimeout(() => message.classList.remove('show'), 1500);
+}
 
 window.addEventListener('keydown', (event) => {
-  if (event.code === 'KeyF' && player.controls.isLocked) torch.visible = !torch.visible;
+  if (!player.controls.isLocked) return;
+  if (event.code === 'KeyF') torch.visible = !torch.visible;
+  // Until there are monsters, K hurts the minion so med kits can be tested.
+  // Only works with `npm run dev`, not in a production build.
+  if (import.meta.env.DEV && event.code === 'KeyK') health.damage(20);
 });
 
 window.addEventListener('resize', () => {
@@ -78,6 +110,7 @@ renderer.setAnimationLoop((timestamp) => {
 
   player.update(delta);
   fireflies.update(timer.getElapsed());
+  if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);
