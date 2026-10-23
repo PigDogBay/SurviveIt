@@ -1,0 +1,29 @@
+Survive It
+A game by Henry Bailey 9yrs old.
+
+
+You are a one of Gru's minions, you must find the ancient temple somewhere in the haunted woods where dangerous monsters lurke.
+Once in the temple, find the cage and free Gru's trapped son (Felonius). 
+
+
+Characters
+(See characters.pdf) 
+You are a minion. 
+Gru gives you your mission and guidance
+Felonius is Gru's son who needs to be rescued
+The evil bird Roro guards the temples cage and is a final boss
+
+
+Graphics
+The game is 3D first person, realistic look
+
+
+Mechanics
+YOu have a health bar which monsters can deplete
+Pick up med kits top up health
+Collect minion style weapons to kill the monsters
+Find a key to unlock the temple, then 4 more keys to unlock hidden chambers within the temple and finally one more key to unlock the cage.
+
+
+Platform
+The game should run in a browser and use mouse and keyboard controls
