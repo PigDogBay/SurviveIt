@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isUnderground } from './dungeon.js';
 import { TEMPLE } from './terrain.js';
 
 // Seconds until the first ambush in the woods, then between ambushes. The
@@ -46,6 +47,8 @@ export function createScares({ camera, monsters, sounds }) {
   }
 
   function update(delta, playerPosition) {
+    // No monsters in the dungeons yet, so no scares there either.
+    if (isUnderground(playerPosition)) return;
     const fromStart = Math.hypot(playerPosition.x, playerPosition.z);
     const fromTemple = Math.hypot(playerPosition.x - TEMPLE.x, playerPosition.z - TEMPLE.z);
 

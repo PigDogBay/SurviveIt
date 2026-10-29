@@ -47,6 +47,14 @@ export function stoneTexture() {
 // A box whose stone texture is the same size on every face, however big
 // the box is.
 export function stoneBox(width, height, depth, material) {
+  const mesh = new THREE.Mesh(stoneGeometry(width, height, depth), material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+// The shape of a stone box, for joining many boxes into one mesh.
+export function stoneGeometry(width, height, depth) {
   const geometry = new THREE.BoxGeometry(width, height, depth);
   const uv = geometry.attributes.uv;
   // Faces are +x, -x, +y, -y, +z, -z, with 4 corners each.
@@ -64,8 +72,5 @@ export function stoneBox(width, height, depth, material) {
       uv.setXY(i, (uv.getX(i) * u) / TILE, (uv.getY(i) * v) / TILE);
     }
   });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
+  return geometry;
 }

@@ -20,11 +20,12 @@ const DOOR_OPEN_TIME = 2.5;
 // Hidden chambers, two on each side of the hall, each opened by its own key.
 // `side` is -1 for the left wall and 1 for the right; `z` is where along it.
 // A chamber that `reveals` a key has a switch on its back wall, in that key's
-// colour; touching it makes the key appear in the woods.
+// colour; touching it makes the key appear in the woods. The blue chamber
+// has the stairs down to the second dungeon instead of a gem.
 const CHAMBERS = [
   { key: 'red', side: -1, z: 4, reveals: 'blue' },
-  { key: 'blue', side: -1, z: -4 },
-  { key: 'green', side: 1, z: 4 },
+  { key: 'blue', side: -1, z: -4, stairs: true },
+  { key: 'green', side: 1, z: 4, reveals: 'purple' },
   { key: 'purple', side: 1, z: -4 },
 ];
 const CHAMBER_WIDTH = 6;
@@ -182,14 +183,17 @@ export function createTemple({ keys, sounds, showMessage }) {
       add(stoneBox(CHAMBER_WIDTH, chamberFull, WALL, stone), middleX, chamberWallY, endZ);
       wall(side * halfWidth, endZ, outerX, endZ);
     }
-    add(stoneBox(CHAMBER_WIDTH - WALL, 0.1, CHAMBER_DEPTH - 2 * WALL, darkStone), middleX - (side * WALL) / 2, 0, z);
+    const floorX = middleX - (side * WALL) / 2;
+    const floor = { x1: floorX - (CHAMBER_WIDTH - WALL) / 2, x2: floorX + (CHAMBER_WIDTH - WALL) / 2, z1: z - halfChamber + WALL, z2: z + halfChamber - WALL };
+    slabAroundStairs(floor, 0, 0.1, darkStone, add);
     add(stoneBox(CHAMBER_WIDTH + 1, 0.8, CHAMBER_DEPTH + 1, stone), middleX, CHAMBER_HEIGHT + 0.4, z);
 
-    const standX = middleX - (side * WALL) / 2;
-    add(stoneBox(0.8, 1, 0.8, stone), standX, 0.5, z);
-    post(standX, z, 0.55);
-    const gem = add(new THREE.Mesh(gemGeometry, new THREE.MeshBasicMaterial({ color: colour })), standX, 1.45, z);
-    gems.push(gem);
+    if (!chamber.stairs) {
+      add(stoneBox(0.8, 1, 0.8, stone), floorX, 0.5, z);
+      post(floorX, z, 0.55);
+      const gem = add(new THREE.Mesh(gemGeometry, new THREE.MeshBasicMaterial({ color: colour })), floorX, 1.45, z);
+      gems.push(gem);
+    }
 
     if (chamber.reveals) wallSwitch(side * (halfWidth + CHAMBER_WIDTH - WALL), z, -side, chamber.reveals);
   }
@@ -270,14 +274,16 @@ export function createTemple({ keys, sounds, showMessage }) {
     { light: add(new THREE.PointLight(0xff8a3a, 12, 16, 1.5), 0, 2.2, -halfDepth + 2.5), brightness: 12 },
   ];
 
-  // The dungeon underneath, with the red key hidden in it.
+  // The dungeons underneath, with the red and green keys hidden in them.
   const dungeon = buildDungeon({ add, stone, darkStone, flameMaterial });
   colliders.push(...dungeon.colliders);
   flames.push(...dungeon.flames);
   lights.push(...dungeon.lights);
-  keys.place('red', dungeon.keySpot);
+  keys.place('red', dungeon.keySpots.red);
+  keys.place('green', dungeon.keySpots.green);
 
   function update(delta, time, playerPosition, collisions) {
+    dungeon.update(playerPosition);
     for (const { flame, phase } of flames) {
       const flicker = 0.85 + Math.sin(time * 9 + phase) * 0.1 + Math.sin(time * 23 + phase * 2) * 0.05;
       flame.scale.set(0.7 * flicker, 0.9 * flicker, 1);

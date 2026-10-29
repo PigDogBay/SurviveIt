@@ -5,6 +5,9 @@ import { heightAt, TEMPLE, WORLD_RADIUS } from './terrain.js';
 
 const SPAWN_CLEARING = 9;
 const CELL = 4.5;
+// Trees and rocks only get in the way of things no more than this far below
+// the ground, so the dungeons can run underneath them.
+const ROOTS = 1.5;
 
 function pineFoliageGeometry() {
   const layers = [
@@ -86,13 +89,13 @@ export function createForest() {
         const kind = random() < 0.82 ? pines : deadTrees;
         if (cleared) continue;
         kind.push(tree);
-        colliders.push({ x, z, radius: 0.35 * scale + 0.3 });
+        colliders.push({ x, z, radius: 0.35 * scale + 0.3, above: heightAt(x, z) - ROOTS });
       } else if (roll < 0.6 && !outside) {
         const scale = range(random, 0.3, 1.4);
         const rock = { x, z, scale, rotation: range(random, 0, Math.PI * 2) };
         if (cleared) continue;
         rocks.push(rock);
-        if (scale > 0.6) colliders.push({ x, z, radius: scale * 0.95 });
+        if (scale > 0.6) colliders.push({ x, z, radius: scale * 0.95, above: heightAt(x, z) - ROOTS });
       }
     }
   }

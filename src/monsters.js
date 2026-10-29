@@ -109,7 +109,7 @@ export function createMonsters(collisions, sounds) {
   const monsters = [];
 
   function addMonster(x, z, heading, stride) {
-    const position = new THREE.Vector3(x, 0, z);
+    const position = new THREE.Vector3(x, heightAt(x, z), z);
     collisions.pushOut(position, RADIUS, true);
     position.y = heightAt(position.x, position.z);
 

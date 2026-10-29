@@ -7,10 +7,10 @@ const hex = (colour) => `#${colour.toString(16).padStart(6, '0')}`;
 
 // Every key in the game. The temple key is plain gold; each chamber key
 // has a gem that matches the ring on its chamber's door. A key with no
-// `spot` is put in place by whatever hides it (the red key is in the dungeon
-// under the temple). A `waiting` key isn't in the woods until something
-// reveals it (the blue key appears when the switch in the red chamber is
-// pressed). The cage key goes here later.
+// `spot` is put in place by whatever hides it (the red and green keys are
+// in the dungeons). A `waiting` key isn't in the woods until something
+// reveals it (the blue and purple keys appear when the switches in the red
+// and green chambers are pressed). The cage key goes here later.
 const KEYS = [
   {
     id: 'temple',
@@ -22,10 +22,10 @@ const KEYS = [
   ...[
     ['red', 'Red', 0xff4a3a, null],
     ['blue', 'Blue', 0x4a8cff, [-120, 20]],
-    ['green', 'Green', 0x5ae05a, [10, 125]],
+    ['green', 'Green', 0x5ae05a, null],
     ['purple', 'Purple', 0xb46aff, [-30, -130]],
   ].map(([id, colourName, colour, spot]) => ({
-    waiting: id === 'blue',
+    waiting: id === 'blue' || id === 'purple',
     id,
     name: `${colourName} chamber key`,
     colour,

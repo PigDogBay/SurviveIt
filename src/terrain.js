@@ -60,9 +60,9 @@ function groundTexture() {
   return texture;
 }
 
-// `cutOut(x, z)` says where to leave a hole in the ground, such as over the
-// stairs down to the dungeon.
-export function createTerrain(cutOut = () => false) {
+// `holes` are rectangles in the temple's own space (x1, x2, z1, z2) where the
+// ground isn't drawn, such as over the stairs down to the dungeons.
+export function createTerrain(holes = []) {
   const geometry = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE, 200, 200);
   geometry.rotateX(-Math.PI / 2);
 
@@ -72,22 +72,38 @@ export function createTerrain(cutOut = () => false) {
   }
   geometry.computeVertexNormals();
 
-  // Leave out every triangle whose middle is in the hole.
-  const index = geometry.index.array;
-  const kept = [];
-  for (let i = 0; i < index.length; i += 3) {
-    const [a, b, c] = [index[i], index[i + 1], index[i + 2]];
-    const x = (position.getX(a) + position.getX(b) + position.getX(c)) / 3;
-    const z = (position.getZ(a) + position.getZ(b) + position.getZ(c)) / 3;
-    if (!cutOut(x, z)) kept.push(a, b, c);
-  }
-  geometry.setIndex(kept);
-
   const material = new THREE.MeshStandardMaterial({
     map: groundTexture(),
     roughness: 1,
     metalness: 0,
   });
+
+  // The holes are cut out exactly, pixel by pixel, rather than by leaving
+  // out whole triangles of the ground, which are 2 m across.
+  if (holes.length > 0) {
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.holes = { value: holes.map((h) => new THREE.Vector4(h.x1, h.x2, h.z1, h.z2)) };
+      shader.uniforms.templeCentre = { value: new THREE.Vector2(TEMPLE.x, TEMPLE.z) };
+      shader.uniforms.templeTurn = { value: new THREE.Vector2(Math.cos(TEMPLE.angle), Math.sin(TEMPLE.angle)) };
+      shader.vertexShader = shader.vertexShader
+        .replace('void main() {', 'varying vec2 vGround;\nvoid main() {')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGround = position.xz;');
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'void main() {',
+        `varying vec2 vGround;
+uniform vec4 holes[${holes.length}];
+uniform vec2 templeCentre;
+uniform vec2 templeTurn;
+void main() {
+  vec2 d = vGround - templeCentre;
+  vec2 local = vec2(d.x * templeTurn.x - d.y * templeTurn.y, d.x * templeTurn.y + d.y * templeTurn.x);
+  for (int i = 0; i < ${holes.length}; i++) {
+    vec4 h = holes[i];
+    if (local.x > h.x && local.x < h.y && local.y > h.z && local.y < h.w) discard;
+  }`,
+      );
+    };
+  }
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.receiveShadow = true;

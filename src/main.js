@@ -13,7 +13,7 @@ import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
 import { createCollisionGrid } from './collision.js';
-import { DUNGEON_PICKUPS, inStairwell } from './dungeon.js';
+import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
 const NIGHT = 0x0b1418;
 
@@ -61,8 +61,8 @@ torch.target.position.set(0, 0, -1);
 camera.add(torch, torch.target);
 scene.add(camera);
 
-// Leave a hole in the ground over the stairs down to the dungeon.
-scene.add(createTerrain((x, z) => inStairwell(x, z, 1.5)));
+// Leave holes in the ground over the stairs down to the dungeons.
+scene.add(createTerrain(OPENINGS));
 const forest = createForest();
 scene.add(forest.group);
 const fireflies = createFireflies();

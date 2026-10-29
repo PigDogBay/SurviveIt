@@ -40,8 +40,8 @@ const SWORD_DAMAGE = 3;
 const SWING_TIME = 0.3;
 
 // In the order of the number keys that select them. The blunderbuss lies
-// just ahead of the start; the freeze ray is in the dungeon under the
-// temple; the others are further out in the woods.
+// just ahead of the start; the freeze ray and the fart gun are in the
+// dungeons; the others are further out in the woods.
 // `ammo` is how many shots a weapon comes with, the most it can carry, and
 // how many an ammo box adds. The flamethrower uses 1 each time it fires,
 // every 0.3 s. The sword needs no ammo.
@@ -58,7 +58,7 @@ const WEAPONS = [
   },
   {
     name: 'Fart gun',
-    spot: [28, -32],
+    spot: DUNGEON_PICKUPS.fartGun,
     glow: 0x9be04a,
     build: buildFartGun,
     muzzle: -0.46,
@@ -161,7 +161,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     // A spot with `y` (in the dungeon) is used as it is, and stays off the map.
     weapon.hidden = weapon.spot.y !== undefined;
     const [x, z] = weapon.hidden ? [weapon.spot.x, weapon.spot.z] : weapon.spot;
-    const spot = new THREE.Vector3(x, 0, z);
+    const spot = new THREE.Vector3(x, heightAt(x, z), z);
     if (!weapon.hidden) collisions.pushOut(spot, 1);
     weapon.floor = weapon.hidden ? weapon.spot.y : heightAt(spot.x, spot.z);
     const pickupGun = weapon.build();

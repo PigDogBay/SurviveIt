@@ -90,7 +90,10 @@ export function createAmmo(colliders) {
       box.position.y = baseY + Math.sin(time * 2 + phase) * 0.12;
       crate.rotation.y = time * 1.2 + phase;
 
-      const near = Math.hypot(playerPosition.x - box.position.x, playerPosition.z - box.position.z) < PICKUP_DISTANCE;
+      // Only on the same level, so a box can't be reached from a dungeon underneath.
+      const near =
+        Math.abs(playerPosition.y - box.position.y) < 2 &&
+        Math.hypot(playerPosition.x - box.position.x, playerPosition.z - box.position.z) < PICKUP_DISTANCE;
       if (!near) continue;
       const added = weapons.refill();
       if (!added) {
