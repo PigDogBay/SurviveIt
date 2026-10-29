@@ -28,6 +28,15 @@ const STUN_TIME = 0.35;
 const DEATH_TIME = 1.8;
 // A loud noise makes monsters chase for this long, however far away the player is.
 const ALERT_TIME = 10;
+// A chasing monster growls now and then once it's this close.
+const GROWL_DISTANCE = 8;
+const GROWL_EVERY = [1.5, 3.5];
+// Monsters further off sound quieter, fading to nothing at this distance.
+const HEARING_DISTANCE = 60;
+// Shortest gap between two roars, or two growls, from any monsters, so a
+// crowd doesn't turn into one long din.
+const ROAR_GAP = 0.4;
+const GROWL_GAP = 0.7;
 
 const skin = new THREE.MeshStandardMaterial({ color: 0x1c1a1f, roughness: 0.85 });
 // Eyes ignore fog and lighting, so a pair of red eyes is the first thing you
@@ -93,7 +102,7 @@ function buildMonster() {
   return { monster, leftArm, rightArm, leftLeg, rightLeg };
 }
 
-export function createMonsters(collisions) {
+export function createMonsters(collisions, sounds) {
   const random = createRandom(666);
   const group = new THREE.Group();
   const monsters = [];
@@ -119,6 +128,8 @@ export function createMonsters(collisions) {
       dead: false,
       deathTimer: 0,
       stride,
+      roared: false,
+      growlTimer: 0,
     };
     monsters.push(m);
     return m;
@@ -131,8 +142,13 @@ export function createMonsters(collisions) {
   }
 
   const toPlayer = new THREE.Vector3();
+  let sinceRoar = ROAR_GAP;
+  let sinceGrowl = GROWL_GAP;
+  const loudness = (distance) => Math.max(0, 1 - distance / HEARING_DISTANCE);
 
   function update(delta, playerPosition, health) {
+    sinceRoar += delta;
+    sinceGrowl += delta;
     for (let i = monsters.length - 1; i >= 0; i--) {
       const m = monsters[i];
       const position = m.monster.position;
@@ -161,6 +177,28 @@ export function createMonsters(collisions) {
       m.alerted -= delta;
       if (distance < NOTICE_DISTANCE || m.alerted > 0) m.chasing = true;
       else if (distance > GIVE_UP_DISTANCE) m.chasing = false;
+
+      // Roar on first spotting the minion (or being shot or woken by a bang).
+      if (m.chasing && !m.roared) {
+        m.roared = true;
+        // Growl as soon as it gets close.
+        m.growlTimer = 0;
+        if (sinceRoar >= ROAR_GAP) {
+          sounds.roar(loudness(distance));
+          sinceRoar = 0;
+        }
+      } else if (!m.chasing) {
+        m.roared = false;
+      }
+      // Growl every so often while close.
+      if (m.chasing && distance < GROWL_DISTANCE) {
+        m.growlTimer -= delta;
+        if (m.growlTimer <= 0 && sinceGrowl >= GROWL_GAP) {
+          sounds.growl(loudness(distance));
+          sinceGrowl = 0;
+          m.growlTimer = range(Math.random, ...GROWL_EVERY);
+        }
+      }
 
       let speed = 0;
       if (m.chasing) {
@@ -199,6 +237,7 @@ export function createMonsters(collisions) {
       if (m.chasing && m.stun <= 0 && distance < ATTACK_DISTANCE) {
         if (m.attackTimer <= 0) {
           health.damage(ATTACK_DAMAGE);
+          sounds.rip();
           m.attackTimer = ATTACK_COOLDOWN;
         }
       }
@@ -245,6 +284,9 @@ export function createMonsters(collisions) {
     const m = addMonster(x, z, heading, 0);
     m.monster.rotation.y = heading;
     m.chasing = true;
+    // The scare has its own screech, so no roar on top.
+    m.roared = true;
+    m.growlTimer = GROWL_EVERY[1];
     m.alerted = ALERT_TIME;
     m.attackTimer = ATTACK_COOLDOWN;
     m.leftArm.rotation.x = m.rightArm.rotation.x = -1.6;

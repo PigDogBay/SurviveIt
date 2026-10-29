@@ -238,5 +238,103 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload };
+  // A deep, rough roar that rises then falls, for a monster spotting the
+  // minion. `volume` is 0 to 1, quieter for monsters further away.
+  function roar(volume) {
+    if (volume < 0.02) return;
+    const now = start();
+    const length = 1.3;
+    const output = envelope(now, 0.8 * volume, length);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(500, now);
+    filter.frequency.linearRampToValueAtTime(1100, now + 0.3);
+    filter.frequency.exponentialRampToValueAtTime(250, now + length);
+    filter.connect(output);
+    // Two slightly out-of-tune voices make it sound bigger and nastier.
+    const voices = [95, 101].map((pitch) => {
+      const voice = audio.createOscillator();
+      voice.type = 'sawtooth';
+      voice.frequency.setValueAtTime(pitch * 0.8, now);
+      voice.frequency.linearRampToValueAtTime(pitch * 1.25, now + 0.3);
+      voice.frequency.exponentialRampToValueAtTime(pitch * 0.6, now + length);
+      voice.connect(filter);
+      return voice;
+    });
+    const rasp = audio.createOscillator();
+    rasp.frequency.value = 28;
+    const raspDepth = audio.createGain();
+    raspDepth.gain.value = 25;
+    rasp.connect(raspDepth);
+    for (const voice of voices) raspDepth.connect(voice.frequency);
+    const breath = audio.createBiquadFilter();
+    breath.type = 'bandpass';
+    breath.frequency.value = 700;
+    noiseSource(now, length).connect(breath).connect(filter);
+    for (const oscillator of [...voices, rasp]) {
+      oscillator.start(now);
+      oscillator.stop(now + length);
+    }
+  }
+
+  // A low, rumbling growl that throbs, for a monster close by.
+  function growl(volume) {
+    if (volume < 0.02) return;
+    const now = start();
+    const length = 1.1;
+    const tone = audio.createOscillator();
+    tone.type = 'sawtooth';
+    tone.frequency.setValueAtTime(62, now);
+    tone.frequency.linearRampToValueAtTime(75, now + 0.4);
+    tone.frequency.linearRampToValueAtTime(55, now + length);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 380;
+    // Throb the volume up and down quickly, like a rattling throat.
+    const throb = audio.createGain();
+    throb.gain.value = 0.6;
+    const pulse = audio.createOscillator();
+    pulse.frequency.value = 13;
+    const pulseDepth = audio.createGain();
+    pulseDepth.gain.value = 0.4;
+    pulse.connect(pulseDepth).connect(throb.gain);
+    const output = envelope(now, 0.9 * volume, length);
+    tone.connect(filter).connect(throb).connect(output);
+    const breath = audio.createBiquadFilter();
+    breath.type = 'lowpass';
+    breath.frequency.value = 300;
+    noiseSource(now, length).connect(breath).connect(throb);
+    for (const oscillator of [tone, pulse]) {
+      oscillator.start(now);
+      oscillator.stop(now + length);
+    }
+  }
+
+  // A ripping, tearing noise for claws slashing the minion: crackly noise
+  // that keeps cutting in and out, sweeping up in pitch.
+  function rip() {
+    const now = start();
+    const length = 0.4;
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.5;
+    filter.frequency.setValueAtTime(900, now);
+    filter.frequency.exponentialRampToValueAtTime(3500, now + length);
+    const tear = audio.createGain();
+    tear.gain.setValueAtTime(0, now);
+    for (let t = 0; t < length; t += 0.012 + Math.random() * 0.02) {
+      tear.gain.setValueAtTime(0.3 + Math.random() * 0.7, now + t);
+      tear.gain.setValueAtTime(0.05, now + t + 0.006);
+    }
+    noiseSource(now, length).connect(filter).connect(tear).connect(envelope(now, 1, length));
+    // A thump under the tear, so the hit feels heavy.
+    const thump = audio.createOscillator();
+    thump.frequency.setValueAtTime(140, now);
+    thump.frequency.exponentialRampToValueAtTime(45, now + 0.2);
+    thump.connect(envelope(now, 0.7, 0.25));
+    thump.start(now);
+    thump.stop(now + 0.25);
+  }
+
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip };
 }

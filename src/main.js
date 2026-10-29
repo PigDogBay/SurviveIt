@@ -80,7 +80,7 @@ const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
 
 const collisions = createCollisionGrid(forest.colliders);
-const monsters = createMonsters(collisions);
+const monsters = createMonsters(collisions, sounds);
 scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
