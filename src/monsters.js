@@ -8,9 +8,10 @@ const COUNT = 70;
 const SAFE_START = 25;
 const RADIUS = 0.5;
 
-const WANDER_SPEED = 1.4;
-// Faster than walking (4.5) but slower than running (8), so the minion has to run.
-const CHASE_SPEED = 5.5;
+const WANDER_SPEED = 1;
+// A little slower than walking (4.5), at Henry's request, so the minion can
+// get away without running.
+const CHASE_SPEED = 4;
 const NOTICE_DISTANCE = 32;
 const GIVE_UP_DISTANCE = 45;
 const ATTACK_DISTANCE = 1.6;
