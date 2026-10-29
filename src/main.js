@@ -13,7 +13,7 @@ import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
 import { createCollisionGrid } from './collision.js';
-import { inStairwell } from './dungeon.js';
+import { DUNGEON_PICKUPS, inStairwell } from './dungeon.js';
 
 const NIGHT = 0x0b1418;
 
@@ -76,7 +76,7 @@ scene.add(temple.group);
 // The temple's walls block the way just like trees do.
 forest.colliders.push(...temple.colliders);
 
-const medkits = createMedkits(forest.colliders);
+const medkits = createMedkits(forest.colliders, DUNGEON_PICKUPS.medkits);
 scene.add(medkits.group);
 const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);

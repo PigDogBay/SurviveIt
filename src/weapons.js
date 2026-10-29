@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { DUNGEON_PICKUPS } from './dungeon.js';
 import { heightAt } from './terrain.js';
 import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildSword } from './weapon-models.js';
 
@@ -39,7 +40,8 @@ const SWORD_DAMAGE = 3;
 const SWING_TIME = 0.3;
 
 // In the order of the number keys that select them. The blunderbuss lies
-// just ahead of the start; the others are further out in the woods.
+// just ahead of the start; the freeze ray is in the dungeon under the
+// temple; the others are further out in the woods.
 // `ammo` is how many shots a weapon comes with, the most it can carry, and
 // how many an ammo box adds. The flamethrower uses 1 each time it fires,
 // every 0.3 s. The sword needs no ammo.
@@ -66,7 +68,7 @@ const WEAPONS = [
   },
   {
     name: 'Freeze ray',
-    spot: [-48, 52],
+    spot: DUNGEON_PICKUPS.freezeRay,
     glow: 0x7fe8ff,
     build: buildFreezeRay,
     muzzle: -0.4,
@@ -156,9 +158,12 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   const flashLight = new THREE.PointLight(0xffffff, 0, 25, 1.5);
 
   for (const weapon of WEAPONS) {
-    const [x, z] = weapon.spot;
+    // A spot with `y` (in the dungeon) is used as it is, and stays off the map.
+    weapon.hidden = weapon.spot.y !== undefined;
+    const [x, z] = weapon.hidden ? [weapon.spot.x, weapon.spot.z] : weapon.spot;
     const spot = new THREE.Vector3(x, 0, z);
-    collisions.pushOut(spot, 1);
+    if (!weapon.hidden) collisions.pushOut(spot, 1);
+    weapon.floor = weapon.hidden ? weapon.spot.y : heightAt(spot.x, spot.z);
     const pickupGun = weapon.build();
     pickupGun.scale.setScalar(1.6);
     pickupGun.traverse((part) => (part.castShadow = true));
@@ -169,7 +174,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     pickupGlow.scale.set(2, 2, 1);
     weapon.pickup = new THREE.Group();
     weapon.pickup.add(pickupGun, pickupGlow);
-    weapon.pickup.position.set(spot.x, heightAt(spot.x, spot.z) + 0.55, spot.z);
+    weapon.pickup.position.set(spot.x, weapon.floor + 0.55, spot.z);
     weapon.pickupGun = pickupGun;
     group.add(weapon.pickup);
 
@@ -485,9 +490,10 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     for (const weapon of WEAPONS) {
       if (weapon.owned) continue;
       const { pickup } = weapon;
-      pickup.position.y = heightAt(pickup.position.x, pickup.position.z) + 0.55 + Math.sin(time * 2) * 0.1;
+      pickup.position.y = weapon.floor + 0.55 + Math.sin(time * 2) * 0.1;
       weapon.pickupGun.rotation.y = time * 1.2;
-      if (Math.hypot(playerPosition.x - pickup.position.x, playerPosition.z - pickup.position.z) < PICKUP_DISTANCE) {
+      const sameLevel = Math.abs(playerPosition.y - pickup.position.y) < 2;
+      if (sameLevel && Math.hypot(playerPosition.x - pickup.position.x, playerPosition.z - pickup.position.z) < PICKUP_DISTANCE) {
         weapon.owned = true;
         if (weapon.ammo) weapon.rounds = weapon.ammo.start;
         group.remove(pickup);
@@ -538,7 +544,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
 
   // Where the weapons not yet picked up are, for the map.
   function markers() {
-    return WEAPONS.filter((weapon) => !weapon.owned).map((weapon) => ({
+    return WEAPONS.filter((weapon) => !weapon.owned && !weapon.hidden).map((weapon) => ({
       x: weapon.pickup.position.x,
       z: weapon.pickup.position.z,
       colour: `#${weapon.glow.toString(16).padStart(6, '0')}`,

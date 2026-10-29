@@ -72,6 +72,17 @@ function toLocal(x, z) {
 function toWorld(x, z) {
   return [TEMPLE.x + x * cos + z * sin, TEMPLE.z - x * sin + z * cos];
 }
+// Things lying on the dungeon floor, in the world: med kits on the landing
+// and in the west room, and the freeze ray in the west room.
+const onFloor = (x, z) => {
+  const [wx, wz] = toWorld(x, z);
+  return { x: wx, y: TEMPLE_FLOOR - DEPTH, z: wz };
+};
+export const DUNGEON_PICKUPS = {
+  medkits: [onFloor(-3.3, -7.6), onFloor(-6.3, 8.9)],
+  freezeRay: onFloor(-8.5, 6.3),
+};
+
 const inside = (area, x, z, margin = 0) =>
   x >= area.x1 - margin && x <= area.x2 + margin && z >= area.z1 - margin && z <= area.z2 + margin;
 
@@ -281,6 +292,5 @@ export function buildDungeon({ add, stone, darkStone, flameMaterial }) {
     lights.push({ light, brightness: 7 });
   }
 
-  const [keyX, keyZ] = toWorld(...KEY_SPOT);
-  return { colliders, flames, lights, keySpot: { x: keyX, y: TEMPLE_FLOOR - DEPTH, z: keyZ } };
+  return { colliders, flames, lights, keySpot: onFloor(...KEY_SPOT) };
 }

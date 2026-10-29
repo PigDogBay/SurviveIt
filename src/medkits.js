@@ -38,8 +38,10 @@ function isClear(x, z, colliders) {
 }
 
 // Scatters med kits through the woods. Walking into one heals the minion,
-// but only if they're hurt, so kits aren't wasted at full health.
-export function createMedkits(colliders) {
+// but only if they're hurt, so kits aren't wasted at full health. `hidden`
+// kits are placed exactly where given (with `y` as their floor), such as in
+// the dungeon, and stay off the map.
+export function createMedkits(colliders, hidden = []) {
   const random = createRandom(31);
   const geometry = new THREE.BoxGeometry(0.55, 0.38, 0.38);
   const material = new THREE.MeshStandardMaterial({
@@ -68,22 +70,27 @@ export function createMedkits(colliders) {
     spots.push([Math.cos(angle) * distance, Math.sin(angle) * distance]);
   }
 
-  for (let [x, z] of spots) {
-    // Nudge the kit until it isn't inside a tree or rock.
-    for (let tries = 0; tries < 20 && !isClear(x, z, colliders); tries++) {
-      x += range(random, -2, 2);
-      z += range(random, -2, 2);
-    }
+  function addKit(x, floor, z, hidden) {
     const box = new THREE.Mesh(geometry, material);
     box.castShadow = true;
     const glow = new THREE.Sprite(glowMaterial);
     glow.scale.set(1.6, 1.6, 1);
     const kit = new THREE.Group();
     kit.add(box, glow);
-    kit.position.set(x, heightAt(x, z) + 0.5, z);
+    kit.position.set(x, floor + 0.5, z);
     group.add(kit);
-    kits.push({ kit, box, baseY: kit.position.y, phase: range(random, 0, 10) });
+    kits.push({ kit, box, baseY: kit.position.y, phase: range(random, 0, 10), hidden });
   }
+
+  for (let [x, z] of spots) {
+    // Nudge the kit until it isn't inside a tree or rock.
+    for (let tries = 0; tries < 20 && !isClear(x, z, colliders); tries++) {
+      x += range(random, -2, 2);
+      z += range(random, -2, 2);
+    }
+    addKit(x, heightAt(x, z), z, false);
+  }
+  for (const { x, y, z } of hidden) addKit(x, y, z, true);
 
   function update(time, playerPosition, health, showMessage) {
     for (let i = kits.length - 1; i >= 0; i--) {
@@ -91,7 +98,10 @@ export function createMedkits(colliders) {
       kit.position.y = baseY + Math.sin(time * 2 + phase) * 0.12;
       box.rotation.y = time * 1.2 + phase;
 
-      const near = Math.hypot(playerPosition.x - kit.position.x, playerPosition.z - kit.position.z) < PICKUP_DISTANCE;
+      // Only on the same level, so the temple floor can't reach a kit in the dungeon below.
+      const near =
+        Math.abs(playerPosition.y - kit.position.y) < 2 &&
+        Math.hypot(playerPosition.x - kit.position.x, playerPosition.z - kit.position.z) < PICKUP_DISTANCE;
       if (!near) continue;
       if (health.isFull) {
         showMessage('Health is full');
@@ -106,7 +116,7 @@ export function createMedkits(colliders) {
 
   // Where the kits still lying about are, for the map.
   function markers() {
-    return kits.map(({ kit }) => ({ x: kit.position.x, z: kit.position.z }));
+    return kits.filter(({ hidden }) => !hidden).map(({ kit }) => ({ x: kit.position.x, z: kit.position.z }));
   }
 
   return { group, update, markers };
