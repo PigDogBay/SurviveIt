@@ -23,6 +23,8 @@ const CATCH_UP_DISTANCE = 25;
 const RADIUS = 0.3;
 // He's safe once he's this close to the middle of the temple hall.
 const SAFE_DISTANCE = 7;
+// How much harm he can take once he's out of the cage.
+const HEALTH = 100;
 
 // Felonius, Gru's son: a small boy in a hoodie with cat ears on the hood,
 // round glasses, a big smile and a backpack. He faces +z.
@@ -160,8 +162,11 @@ function buildCage(lockColour) {
 
 // The rescue: Felonius is locked in a cage in the woods. The cage key opens
 // it, but not while `guarded()` (Chookie is still around), then he follows the
-// minion. Once he's safe inside the temple, `onSafe` is called.
-export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, guarded }) {
+// minion. `onFreed` is called as the cage opens. Once he's free he has
+// health, shown in `#felonius-health`: things that attack him call `hurt`,
+// and if it runs out `onLost` is called. Once he's safe inside the temple,
+// `onSafe` is called.
+export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, onFreed, onLost, guarded }) {
   const group = new THREE.Group();
 
   const facingStart = Math.atan2(-CAGE.x, -CAGE.z);
@@ -199,6 +204,10 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
   let stride = 0;
   let heard = false;
   let toldGuarded = false;
+  let health = HEALTH;
+  let hurtFlash = 0;
+  const bar = document.getElementById('felonius-health');
+  const barFill = bar.querySelector('.fill');
 
   function walkTowards(target, speed, delta, collisions) {
     const dx = target.x - position.x;
@@ -221,6 +230,11 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
 
   function update(delta, time, playerPosition, collisions) {
     let speed = 0;
+    // Shrinks back for a moment when hit.
+    if (hurtFlash > 0) {
+      hurtFlash -= delta;
+      if (hurtFlash <= 0) boy.scale.setScalar(1);
+    }
     if (state === 'caged') {
       // Waves for help.
       leftArm.rotation.z = -2.6 + Math.sin(time * 6) * 0.4;
@@ -244,6 +258,8 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
         sounds.chime();
         showMessage('You freed Felonius! Lead him back to the temple');
         state = 'opening';
+        bar.classList.remove('hidden');
+        onFreed();
       }
     } else if (state === 'opening') {
       opening = Math.min(1, opening + delta / DOOR_OPEN_TIME);
@@ -267,6 +283,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
       const fromTemple = Math.hypot(position.x - TEMPLE.x, position.z - TEMPLE.z);
       if (fromTemple < SAFE_DISTANCE && position.y >= UNDERGROUND) {
         state = 'safe';
+        bar.classList.add('hidden');
         onSafe();
       }
     }
@@ -282,6 +299,21 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
     }
   }
 
+  // Something hit Felonius. Only counts once he's out of the cage.
+  function hurt(amount) {
+    if (state !== 'leaving' && state !== 'following') return;
+    health = Math.max(0, health - amount);
+    barFill.style.width = `${(health / HEALTH) * 100}%`;
+    hurtFlash = 0.15;
+    boy.scale.setScalar(0.85);
+    sounds.ouch();
+    if (health === 0) {
+      state = 'lost';
+      bar.classList.add('hidden');
+      onLost();
+    }
+  }
+
   // The cage (while Felonius is inside) and Felonius (once he's out), for the map.
   function markers() {
     if (state === 'caged') return [{ x: CAGE.x, z: CAGE.z, kind: 'cage' }];
@@ -293,8 +325,11 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
     colliders,
     update,
     markers,
-    // 'caged', 'opening', 'leaving', 'following' or 'safe'.
+    // 'caged', 'opening', 'leaving', 'following', 'safe' or 'lost'.
     status: () => state,
     door: doorSpot,
+    hurt,
+    // Where his feet are.
+    where: () => position,
   };
 }

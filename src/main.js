@@ -17,6 +17,7 @@ import { createChookie } from './chookie.js';
 import { combineTargets } from './targets.js';
 import { createGru } from './gru.js';
 import { createEasterEggs } from './easter-eggs.js';
+import { createCrows } from './crows.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -89,7 +90,22 @@ const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
 const chookie = createChookie({ keys, sounds, showMessage });
 scene.add(chookie.group);
-const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed, guarded: chookie.guarding });
+const felonius = createFelonius({
+  keys,
+  keyColour: keyInfo('cage').colour,
+  sounds,
+  showMessage,
+  onSafe: succeed,
+  guarded: chookie.guarding,
+  // Freeing Felonius brings the crows. `gru` is made further down.
+  onFreed() {
+    crows.start();
+    gru.say('Crows! Protect Felonius and get him to the temple!', 5);
+  },
+  onLost: loseFelonius,
+});
+const crows = createCrows({ felonius, sounds });
+scene.add(crows.group);
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
@@ -112,12 +128,12 @@ scene.add(monsters.group);
 const player = createPlayer(camera, document.body, collisions);
 
 // Weapons can hit the monsters and Chookie alike.
-const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, chookie), collisions, sounds, showMessage });
+const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, chookie, crows), collisions, sounds, showMessage });
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
 const gru = createGru({ camera, keys, weapons, temple, felonius, chookie, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, chookie });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, chookie, crows });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
@@ -139,6 +155,15 @@ const health = createHealth({
 document.getElementById('play').addEventListener('click', () => player.controls.lock());
 document.getElementById('retry').addEventListener('click', () => window.location.reload());
 document.getElementById('again').addEventListener('click', () => window.location.reload());
+
+// The crows got Felonius: the mission has failed.
+function loseFelonius() {
+  gameOver = true;
+  player.controls.unlock();
+  gameover.querySelector('h1').textContent = 'The crows got Felonius!';
+  gameover.querySelector('p').textContent = 'Keep him safe all the way to the temple next time.';
+  gameover.classList.remove('hidden');
+}
 
 // Felonius is safe in the temple: the mission is done.
 function succeed() {
@@ -209,6 +234,7 @@ renderer.setAnimationLoop((timestamp) => {
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!gameOver && player.controls.isLocked) monsters.update(delta, camera.position, health);
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
+  if (!gameOver && player.controls.isLocked) crows.update(delta, timer.getElapsed(), camera.position, health);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
   if (!gameOver && player.controls.isLocked) gru.update(camera.position);
   if (!gameOver && player.controls.isLocked) chookie.update(delta, timer.getElapsed(), camera.position, health, collisions);

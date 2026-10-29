@@ -529,6 +529,43 @@ export function createSounds() {
     noiseSource(now, 0.05).connect(knock).connect(envelope(now, 0.6, 0.05));
   }
 
+  // Felonius crying out when he's hit: a quick, high "ow!".
+  function ouch() {
+    const now = start();
+    const voice = audio.createOscillator();
+    voice.type = 'triangle';
+    voice.frequency.setValueAtTime(780, now);
+    voice.frequency.exponentialRampToValueAtTime(460, now + 0.25);
+    voice.connect(envelope(now, 0.4, 0.28));
+    voice.start(now);
+    voice.stop(now + 0.3);
+  }
+
+  // A crow's harsh "caw", for one bird rather than Chookie's three throats.
+  function crow(volume) {
+    if (volume < 0.02) return;
+    const now = start();
+    const length = 0.3;
+    const voice = audio.createOscillator();
+    voice.type = 'sawtooth';
+    voice.frequency.setValueAtTime(650, now);
+    voice.frequency.exponentialRampToValueAtTime(420, now + length);
+    const rasp = audio.createOscillator();
+    rasp.frequency.value = 70;
+    const raspDepth = audio.createGain();
+    raspDepth.gain.value = 120;
+    rasp.connect(raspDepth).connect(voice.frequency);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1500;
+    filter.Q.value = 1.2;
+    voice.connect(filter).connect(envelope(now, 0.35 * volume, length));
+    for (const oscillator of [voice, rasp]) {
+      oscillator.start(now);
+      oscillator.stop(now + length);
+    }
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -549,5 +586,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow };
 }
