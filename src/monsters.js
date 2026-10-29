@@ -29,6 +29,10 @@ const STUN_TIME = 0.35;
 const DEATH_TIME = 1.8;
 // A loud noise makes monsters chase for this long, however far away the player is.
 const ALERT_TIME = 10;
+// A monster blinded by Takis stumbles about at random, rubbing its eyes,
+// but still claws the minion if it bumps into them.
+const BLIND_SPEED = 3.5;
+const BLIND_TOUCH = 1.3;
 // Walking into a frozen monster shatters it, this close.
 const SHATTER_DISTANCE = 1.1;
 const SHARDS = 26;
@@ -135,6 +139,7 @@ export function createMonsters(collisions, sounds, showMessage) {
       stride,
       roared: false,
       growlTimer: 0,
+      blind: 0,
     };
     monsters.push(m);
     return m;
@@ -239,8 +244,14 @@ export function createMonsters(collisions, sounds, showMessage) {
       const distance = toPlayer.length();
 
       m.alerted -= delta;
-      // Monsters can't follow the minion down into the dungeon, so they lose track of them there.
-      if (hidden) {
+      if (m.blind > 0) {
+        // Can't see the minion, so can't chase them.
+        m.blind -= delta;
+        m.chasing = false;
+        m.alerted = 0;
+        if (m.blind <= 0) setEyes(m, true);
+      } else if (hidden) {
+        // Monsters can't follow the minion down into the dungeon, so they lose track of them there.
         m.chasing = false;
         m.alerted = 0;
       } else if (distance < NOTICE_DISTANCE || m.alerted > 0) m.chasing = true;
@@ -269,7 +280,15 @@ export function createMonsters(collisions, sounds, showMessage) {
       }
 
       let speed = 0;
-      if (m.chasing) {
+      if (m.blind > 0) {
+        // Lurches one way, then another.
+        m.wanderTimer -= delta;
+        if (m.wanderTimer <= 0) {
+          m.heading += range(Math.random, -2.5, 2.5);
+          m.wanderTimer = range(Math.random, 0.3, 0.9);
+        }
+        speed = BLIND_SPEED;
+      } else if (m.chasing) {
         m.heading = Math.atan2(toPlayer.x, toPlayer.z);
         speed = distance > ATTACK_DISTANCE * 0.8 ? CHASE_SPEED : 0;
       } else {
@@ -302,18 +321,36 @@ export function createMonsters(collisions, sounds, showMessage) {
       m.rightLeg.rotation.x = -swing;
 
       m.attackTimer -= delta;
-      if (m.chasing && m.stun <= 0 && distance < ATTACK_DISTANCE) {
+      const reaches = m.blind > 0 ? !hidden && distance < BLIND_TOUCH : m.chasing && distance < ATTACK_DISTANCE;
+      if (reaches && m.stun <= 0) {
         if (m.attackTimer <= 0) {
           health.damage(ATTACK_DAMAGE);
           sounds.rip();
           m.attackTimer = ATTACK_COOLDOWN;
         }
       }
-      // Arms lunge forward right after a swipe, otherwise they dangle.
-      const lunge = m.attackTimer > ATTACK_COOLDOWN - 0.3 ? -1.6 : m.chasing ? -0.6 : 0;
+      // Arms lunge forward right after a swipe, otherwise they dangle. A
+      // blind monster rubs its eyes.
+      let lunge = m.attackTimer > ATTACK_COOLDOWN - 0.3 ? -1.6 : m.chasing ? -0.6 : 0;
+      if (m.blind > 0) lunge = -2.4 + Math.sin(m.stride * 3) * 0.3;
       m.leftArm.rotation.x = THREE.MathUtils.lerp(m.leftArm.rotation.x, lunge - swing * 0.5, Math.min(1, delta * 12));
       m.rightArm.rotation.x = THREE.MathUtils.lerp(m.rightArm.rotation.x, lunge + swing * 0.5, Math.min(1, delta * 12));
     }
+  }
+
+  function setEyes(m, open) {
+    m.monster.traverse((part) => {
+      if (part.material === eyes) part.visible = open;
+    });
+  }
+
+  // Takis in the eyes: the monster can't see for `seconds`.
+  function blind(target, seconds) {
+    if (target.dead) return;
+    target.blind = seconds;
+    target.wanderTimer = 0;
+    setEyes(target, false);
+    sounds.yelp(1);
   }
 
   function setSkin(m, material) {
@@ -399,5 +436,5 @@ export function createMonsters(collisions, sounds, showMessage) {
     return monsters.filter((m) => !m.dead).map((m) => ({ x: m.monster.position.x, z: m.monster.position.z }));
   }
 
-  return { group, update, raycast, hurt, near, alert, freeze, ambush, markers };
+  return { group, update, raycast, hurt, near, alert, freeze, blind, ambush, markers };
 }

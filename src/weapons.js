@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DUNGEON_PICKUPS } from './dungeon.js';
 import { heightAt } from './terrain.js';
-import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildSword } from './weapon-models.js';
+import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildSword, buildTaki, buildTakiGun } from './weapon-models.js';
 
 const PICKUP_DISTANCE = 1.4;
 const SWITCH_TIME = 0.25;
@@ -40,6 +40,13 @@ const SWORD_REACH = 2.6;
 const SWORD_WIDTH = Math.cos(1);
 const SWORD_DAMAGE = 6;
 const SWING_TIME = 0.3;
+
+// Taki gun: shoots spicy rolled Takis that fly through the air. One in the
+// eyes blinds a monster for a while; it does no damage.
+const TAKI_SPEED = 32;
+const TAKI_RANGE = 40;
+const TAKI_DROP = 3;
+const BLIND_TIME = 6;
 
 // In the order of the number keys that select them. The blunderbuss lies
 // just ahead of the start; the freeze ray and the fart gun are in the
@@ -90,7 +97,22 @@ const WEAPONS = [
     ammo: { start: 40, max: 100, box: 30 },
   },
   { name: 'Sword', spot: [14, 16], glow: 0xd8e4ff, build: buildSword, muzzle: -0.6, reloadTime: 0.6, kick: 0, swing: true },
+  {
+    name: 'Taki gun',
+    spot: [28, -32],
+    glow: 0xff2a6a,
+    build: buildTakiGun,
+    muzzle: -0.39,
+    reloadTime: 0.35,
+    kick: 0.25,
+    ammo: { start: 20, max: 50, box: 12 },
+    // Takis is a name, so it keeps its capital letter in messages.
+    properName: true,
+  },
 ];
+
+// A weapon's name in the middle of a sentence.
+const inSentence = (weapon) => (weapon.properName ? weapon.name : weapon.name.toLowerCase());
 
 function glowTexture() {
   const canvas = document.createElement('canvas');
@@ -192,6 +214,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   WEAPONS[2].fire = fireFreezeRay;
   WEAPONS[3].fire = fireFlamethrower;
   WEAPONS[4].fire = swingSword;
+  WEAPONS[5].fire = fireTakiGun;
 
   let current = null;
   let sinceSwitch = SWITCH_TIME;
@@ -439,12 +462,54 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     }
   }
 
+  // Takis in flight. Each one spins as it goes and drops a little, and stops
+  // at the first tree or monster in its way.
+  const takis = [];
+  function fireTakiGun() {
+    sounds.pop();
+    const taki = new THREE.Group();
+    taki.add(buildTaki());
+    muzzleFlash.getWorldPosition(taki.position);
+    taki.userData = { velocity: aim.clone().multiplyScalar(TAKI_SPEED), travelled: 0 };
+    group.add(taki);
+    takis.push(taki);
+  }
+
+  const takiStep = new THREE.Vector3();
+  const takiDirection = new THREE.Vector3();
+  function updateTakis(delta) {
+    for (let i = takis.length - 1; i >= 0; i--) {
+      const taki = takis[i];
+      const { velocity } = taki.userData;
+      velocity.y -= TAKI_DROP * delta;
+      takiStep.copy(velocity).multiplyScalar(delta);
+      const length = takiStep.length();
+      takiDirection.copy(takiStep).normalize();
+      const blocked = collisions.rayDistance(taki.position, takiDirection, length) < length;
+      const hit = monsters.raycast(taki.position, takiDirection, length);
+      taki.userData.travelled += length;
+      if (hit && !blocked) {
+        monsters.blind(hit.target, BLIND_TIME);
+        sounds.crunch();
+        showHits(1, 0);
+      }
+      if (hit || blocked || taki.userData.travelled > TAKI_RANGE) {
+        group.remove(taki);
+        takis.splice(i, 1);
+        continue;
+      }
+      taki.position.add(takiStep);
+      taki.lookAt(takiDirection.add(taki.position));
+      taki.children[0].rotation.z += delta * 25;
+    }
+  }
+
   function swingSword() {
     sounds.swish();
     if (hitInFront(SWORD_REACH, SWORD_WIDTH, SWORD_DAMAGE) > 0) sounds.thwack();
   }
 
-  const outOfAmmo = (weapon) => `The ${weapon.name.toLowerCase()} is out of ammo! Find an ammo box`;
+  const outOfAmmo = (weapon) => `The ${inSentence(weapon)} is out of ammo! Find an ammo box`;
 
   function fire() {
     if (!current || sinceSwitch < SWITCH_TIME || current.sinceShot < current.reloadTime) return;
@@ -481,7 +546,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   controls.addEventListener('unlock', () => (triggerHeld = false));
   window.addEventListener('keydown', (event) => {
     if (!controls.isLocked) return;
-    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(event.code);
+    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6'].indexOf(event.code);
     if (index >= 0) equip(WEAPONS[index]);
   });
   window.addEventListener('wheel', (event) => {
@@ -503,7 +568,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
         if (weapon.ammo) weapon.rounds = weapon.ammo.start;
         group.remove(pickup);
         equip(weapon);
-        const name = weapon.name.toLowerCase();
+        const name = inSentence(weapon);
         const how = weapon.hold ? 'Hold click to spray fire' : weapon.swing ? 'Click to swing' : 'Click to fire';
         showMessage(`You found a ${name}! ${owned().length === 1 || how !== 'Click to fire' ? how : 'Switch with the number keys'}`);
       }
@@ -516,6 +581,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
 
     const spraying = Boolean(current?.hold && triggerHeld && sinceSwitch >= SWITCH_TIME && current.rounds > 0);
     updateFlames(delta, spraying);
+    updateTakis(delta);
 
     if (!current) return;
     for (const weapon of WEAPONS) weapon.sinceShot += delta;

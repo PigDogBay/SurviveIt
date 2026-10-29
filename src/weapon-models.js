@@ -263,3 +263,59 @@ export function buildSword() {
 
   return sword;
 }
+
+// Takis colours: a purple bag and spicy red-orange rolled snacks.
+const takiPurple = new THREE.MeshStandardMaterial({ color: 0x5a1f8a, emissive: 0x1a0828, roughness: 0.5, side: THREE.DoubleSide });
+const takiRed = new THREE.MeshStandardMaterial({ color: 0xd8402a, emissive: 0x3a0c06, roughness: 0.8 });
+const flameYellow = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0x5a3000, roughness: 0.5 });
+
+// One rolled Taki: a little tube of spicy tortilla, lying along z.
+export function buildTaki() {
+  const taki = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.13, 10).rotateX(Math.PI / 2), takiRed);
+  taki.castShadow = true;
+  return taki;
+}
+
+// The Taki gun: a purple body like a Takis bag with a flame stripe, a
+// hopper on top full of Takis, and a red barrel they shoot out of. Points
+// along -z.
+export function buildTakiGun() {
+  const gun = new THREE.Group();
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.1, 0.26), takiPurple);
+  body.position.z = 0;
+  gun.add(body);
+  for (const side of [-1, 1]) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.03, 0.2), flameYellow);
+    stripe.position.set(side * 0.047, 0.01, 0);
+    gun.add(stripe);
+  }
+
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.26, 14).rotateX(Math.PI / 2), takiRed);
+  barrel.position.set(0, 0.02, -0.25);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.007, 6, 16), iron);
+  ring.position.set(0, 0.02, -0.38);
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), bore);
+  hole.position.set(0, 0.02, -0.381);
+  hole.rotation.y = Math.PI;
+  gun.add(barrel, ring, hole);
+
+  // An open hopper on top, with Takis sticking out of it.
+  const hopper = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.026, 0.045, 16, 1, true), takiPurple);
+  hopper.position.set(0, 0.07, 0.04);
+  gun.add(hopper);
+  for (const [x, z, tilt] of [
+    [-0.012, 0.035, 0.4],
+    [0.012, 0.045, -0.3],
+    [0.0, 0.03, 0.9],
+  ]) {
+    const taki = buildTaki();
+    taki.rotation.set(Math.PI / 2 - 0.3, tilt, 0);
+    taki.scale.setScalar(0.35);
+    taki.position.set(x, 0.09, z);
+    gun.add(taki);
+  }
+
+  grip(gun, blue);
+  return gun;
+}

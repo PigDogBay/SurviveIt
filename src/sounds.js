@@ -358,6 +358,56 @@ export function createSounds() {
     }
   }
 
+  // A soft "thoop" as a Taki is launched.
+  function pop() {
+    const now = start();
+    const tone = audio.createOscillator();
+    tone.type = 'sine';
+    tone.frequency.setValueAtTime(220, now);
+    tone.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+    tone.connect(envelope(now, 0.4, 0.12));
+    tone.start(now);
+    tone.stop(now + 0.13);
+    const puff = audio.createBiquadFilter();
+    puff.type = 'bandpass';
+    puff.frequency.value = 1200;
+    noiseSource(now, 0.08).connect(puff).connect(envelope(now, 0.3, 0.08));
+  }
+
+  // A crunchy snack hitting its target.
+  function crunch() {
+    const now = start();
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2200;
+    filter.Q.value = 1.2;
+    const crackle = audio.createGain();
+    crackle.gain.setValueAtTime(0, now);
+    for (let t = 0; t < 0.15; t += 0.015 + Math.random() * 0.015) {
+      crackle.gain.setValueAtTime(0.4 + Math.random() * 0.6, now + t);
+      crackle.gain.setValueAtTime(0.05, now + t + 0.006);
+    }
+    noiseSource(now, 0.15).connect(filter).connect(crackle).connect(envelope(now, 0.8, 0.15));
+  }
+
+  // A monster's howl of pain, rising then falling, when Takis get in its eyes.
+  function yelp(volume) {
+    if (volume < 0.02) return;
+    const now = start();
+    const length = 0.7;
+    const tone = audio.createOscillator();
+    tone.type = 'sawtooth';
+    tone.frequency.setValueAtTime(260, now);
+    tone.frequency.linearRampToValueAtTime(620, now + 0.15);
+    tone.frequency.exponentialRampToValueAtTime(180, now + length);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1400;
+    tone.connect(filter).connect(envelope(now, 0.35 * volume, length));
+    tone.start(now);
+    tone.stop(now + length);
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -378,5 +428,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp };
 }
