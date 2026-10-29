@@ -10,6 +10,7 @@ import { createSounds } from './sounds.js';
 import { createKeys } from './keys.js';
 import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
+import { createScares } from './scares.js';
 import { createCollisionGrid } from './collision.js';
 
 const NIGHT = 0x0b1418;
@@ -84,6 +85,7 @@ const player = createPlayer(camera, document.body, collisions);
 const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, sounds, showMessage });
 scene.add(weapons.group);
 
+const scares = createScares({ camera, monsters, sounds });
 const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, weapons, keys, monsters });
 const facing = new THREE.Vector3();
 
@@ -143,6 +145,7 @@ renderer.setAnimationLoop((timestamp) => {
   minimap.update(camera.position, camera.getWorldDirection(facing));
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
+  if (!dead && player.controls.isLocked) scares.update(delta, camera.position);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);

@@ -129,5 +129,46 @@ export function createSounds() {
     source.stop(now + length);
   }
 
-  return { bang, fart, zap, chime, rumble };
+  // A sudden shriek with a deep thud under it, for jump scares.
+  function screech() {
+    const now = start();
+    const length = 1;
+    const shriek = audio.createOscillator();
+    shriek.type = 'sawtooth';
+    shriek.frequency.setValueAtTime(700, now);
+    shriek.frequency.exponentialRampToValueAtTime(1700, now + 0.15);
+    shriek.frequency.exponentialRampToValueAtTime(380, now + length);
+    const warble = audio.createOscillator();
+    warble.frequency.value = 33;
+    const warbleDepth = audio.createGain();
+    warbleDepth.gain.value = 180;
+    warble.connect(warbleDepth).connect(shriek.frequency);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1400;
+    filter.Q.value = 0.8;
+    const output = envelope(now, 0.7, length);
+    shriek.connect(filter).connect(output);
+
+    const hiss = audio.createBiquadFilter();
+    hiss.type = 'highpass';
+    hiss.frequency.value = 2500;
+    noiseSource(now, 0.5).connect(hiss).connect(envelope(now, 0.35, 0.45));
+
+    const thud = audio.createOscillator();
+    thud.frequency.setValueAtTime(110, now);
+    thud.frequency.exponentialRampToValueAtTime(35, now + 0.4);
+    thud.connect(envelope(now, 1, 0.5));
+
+    for (const [oscillator, stop] of [
+      [shriek, length],
+      [warble, length],
+      [thud, 0.5],
+    ]) {
+      oscillator.start(now);
+      oscillator.stop(now + stop);
+    }
+  }
+
+  return { bang, fart, zap, chime, rumble, screech };
 }

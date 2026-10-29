@@ -135,6 +135,11 @@ canvas {
   animation: flash 0.5s ease-out;
 }
 
+#flash.scare {
+  background: radial-gradient(ellipse at center, transparent 25%, rgba(90, 0, 0, 0.75) 60%, rgba(0, 0, 0, 0.95));
+  animation: flash 0.7s ease-out;
+}
+
 #flash.heal {
   background: radial-gradient(ellipse at center, transparent 40%, rgba(60, 220, 90, 0.45));
   animation: flash 0.6s ease-out;

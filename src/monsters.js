@@ -98,20 +98,18 @@ export function createMonsters(collisions) {
   const group = new THREE.Group();
   const monsters = [];
 
-  while (monsters.length < COUNT) {
-    const angle = range(random, 0, Math.PI * 2);
-    const distance = range(random, SAFE_START, WORLD_RADIUS - 10);
-    const position = new THREE.Vector3(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
+  function addMonster(x, z, heading, stride) {
+    const position = new THREE.Vector3(x, 0, z);
     collisions.pushOut(position, RADIUS);
     position.y = heightAt(position.x, position.z);
 
     const parts = buildMonster();
     parts.monster.position.copy(position);
     group.add(parts.monster);
-    monsters.push({
+    const m = {
       ...parts,
       chasing: false,
-      heading: range(random, 0, Math.PI * 2),
+      heading,
       wanderTimer: 0,
       attackTimer: 0,
       health: HEALTH,
@@ -120,8 +118,16 @@ export function createMonsters(collisions) {
       alerted: 0,
       dead: false,
       deathTimer: 0,
-      stride: range(random, 0, 10),
-    });
+      stride,
+    };
+    monsters.push(m);
+    return m;
+  }
+
+  while (monsters.length < COUNT) {
+    const angle = range(random, 0, Math.PI * 2);
+    const distance = range(random, SAFE_START, WORLD_RADIUS - 10);
+    addMonster(Math.cos(angle) * distance, Math.sin(angle) * distance, range(random, 0, Math.PI * 2), range(random, 0, 10));
   }
 
   const toPlayer = new THREE.Vector3();
@@ -231,6 +237,20 @@ export function createMonsters(collisions) {
     setSkin(target, ice);
   }
 
+  // A monster that leaps out at the player for a jump scare: it appears
+  // already facing them with its arms up, and gets one swipe's wait before
+  // it can hit.
+  function ambush(x, z, playerPosition) {
+    const heading = Math.atan2(playerPosition.x - x, playerPosition.z - z);
+    const m = addMonster(x, z, heading, 0);
+    m.monster.rotation.y = heading;
+    m.chasing = true;
+    m.alerted = ALERT_TIME;
+    m.attackTimer = ATTACK_COOLDOWN;
+    m.leftArm.rotation.x = m.rightArm.rotation.x = -1.6;
+    return m;
+  }
+
   // The nearest living monster a ray (normalised direction) hits, if any.
   function raycast(origin, direction, maxDistance) {
     let nearest = null;
@@ -269,5 +289,5 @@ export function createMonsters(collisions) {
     return monsters.filter((m) => !m.dead).map((m) => ({ x: m.monster.position.x, z: m.monster.position.z }));
   }
 
-  return { group, update, raycast, hurt, near, alert, freeze, markers };
+  return { group, update, raycast, hurt, near, alert, freeze, ambush, markers };
 }
