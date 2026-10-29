@@ -12,8 +12,8 @@ const WANDER_SPEED = 1;
 // A little slower than walking (4.5), at Henry's request, so the minion can
 // get away without running.
 const CHASE_SPEED = 4;
-const NOTICE_DISTANCE = 32;
-const GIVE_UP_DISTANCE = 45;
+const NOTICE_DISTANCE = 20;
+const GIVE_UP_DISTANCE = 30;
 const ATTACK_DISTANCE = 1.6;
 const ATTACK_DAMAGE = 25;
 const ATTACK_COOLDOWN = 1.2;
