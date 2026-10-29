@@ -179,7 +179,8 @@ canvas {
 }
 
 #menu,
-#gameover {
+#gameover,
+#success {
   position: fixed;
   inset: 0;
   display: flex;
@@ -191,7 +192,8 @@ canvas {
 }
 
 #menu.hidden,
-#gameover.hidden {
+#gameover.hidden,
+#success.hidden {
   display: none;
 }
 
@@ -203,6 +205,17 @@ canvas {
   margin: 0 0 0.5rem;
   font-size: 3.5rem;
   color: #e8343c;
+}
+
+#success {
+  background: radial-gradient(ellipse at center, rgba(60, 50, 0, 0.6), rgba(0, 0, 0, 0.92));
+}
+
+#success h1 {
+  margin: 0 0 0.5rem;
+  font-size: 4.5rem;
+  color: #ffd84a;
+  text-shadow: 0 0 24px rgba(255, 216, 74, 0.5), 0 4px 0 #3a5bbf;
 }
 
 #menu h1 {
@@ -224,7 +237,8 @@ canvas {
 }
 
 #play,
-#retry {
+#retry,
+#again {
   margin: 1.5rem 0;
   padding: 0.9rem 2.2rem;
   font-size: 1.3rem;
@@ -237,7 +251,8 @@ canvas {
 }
 
 #play:hover,
-#retry:hover {
+#retry:hover,
+#again:hover {
   background: #ffe47a;
 }
 

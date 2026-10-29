@@ -8,10 +8,11 @@ import { createAmmo } from './ammo.js';
 import { createMonsters } from './monsters.js';
 import { createWeapons } from './weapons.js';
 import { createSounds } from './sounds.js';
-import { createKeys } from './keys.js';
+import { createKeys, keyInfo } from './keys.js';
 import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
+import { createFelonius } from './felonius.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -80,6 +81,10 @@ const medkits = createMedkits(forest.colliders, DUNGEON_PICKUPS.medkits);
 scene.add(medkits.group);
 const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
+const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed });
+scene.add(felonius.group);
+// The cage's bars block the way like trees do.
+forest.colliders.push(...felonius.colliders);
 
 const collisions = createCollisionGrid(forest.colliders);
 const monsters = createMonsters(collisions, sounds);
@@ -91,16 +96,18 @@ const weapons = createWeapons({ camera, controls: player.controls, monsters, col
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
 const gameover = document.getElementById('gameover');
-let dead = false;
+const success = document.getElementById('success');
+// Set when the minion dies or wins, which stops the game.
+let gameOver = false;
 
 const health = createHealth({
   onDeath() {
-    dead = true;
+    gameOver = true;
     player.controls.unlock();
     gameover.classList.remove('hidden');
   },
@@ -108,9 +115,18 @@ const health = createHealth({
 
 document.getElementById('play').addEventListener('click', () => player.controls.lock());
 document.getElementById('retry').addEventListener('click', () => window.location.reload());
+document.getElementById('again').addEventListener('click', () => window.location.reload());
+
+// Felonius is safe in the temple: the mission is done.
+function succeed() {
+  gameOver = true;
+  sounds.fanfare();
+  player.controls.unlock();
+  success.classList.remove('hidden');
+}
 player.controls.addEventListener('lock', () => menu.classList.add('hidden'));
 player.controls.addEventListener('unlock', () => {
-  if (!dead) menu.classList.remove('hidden');
+  if (!gameOver) menu.classList.remove('hidden');
 });
 
 const message = document.getElementById('message');
@@ -143,15 +159,16 @@ renderer.setAnimationLoop((timestamp) => {
 
   player.update(delta);
   fireflies.update(timer.getElapsed());
-  if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
-  if (!dead) weapons.update(delta, timer.getElapsed(), camera.position);
-  if (!dead) ammo.update(timer.getElapsed(), camera.position, weapons, showMessage);
-  if (!dead) keys.update(timer.getElapsed(), camera.position);
-  if (!dead) temple.update(delta, timer.getElapsed(), camera.position, collisions);
+  if (!gameOver) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
+  if (!gameOver) weapons.update(delta, timer.getElapsed(), camera.position);
+  if (!gameOver) ammo.update(timer.getElapsed(), camera.position, weapons, showMessage);
+  if (!gameOver) keys.update(timer.getElapsed(), camera.position);
+  if (!gameOver) temple.update(delta, timer.getElapsed(), camera.position, collisions);
   minimap.update(camera.position, camera.getWorldDirection(facing));
   // Monsters freeze while the game is paused, so pausing is safe.
-  if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
-  if (!dead && player.controls.isLocked) scares.update(delta, camera.position);
+  if (!gameOver && player.controls.isLocked) monsters.update(delta, camera.position, health);
+  if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
+  if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);

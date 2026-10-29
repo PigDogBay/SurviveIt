@@ -12,7 +12,7 @@ const REVEAL_STEP = 1;
 // The map in the top-right corner. It starts covered in fog, which clears
 // wherever the minion goes. Monsters, pickups and the temple only show once
 // their part of the map has been explored.
-export function createMinimap({ colliders, temple, medkits, ammo, weapons, keys, monsters }) {
+export function createMinimap({ colliders, temple, medkits, ammo, weapons, keys, monsters, felonius }) {
   const canvas = document.getElementById('minimap');
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
   const pixels = Math.round(SIZE * pixelRatio);
@@ -160,6 +160,16 @@ export function createMinimap({ colliders, temple, medkits, ammo, weapons, keys,
     for (const { x, z, colour } of weapons.markers()) dot(x, z, 3.5, colour, '#000');
     for (const { x, z, colour } of keys.markers()) dot(x, z, 3.5, colour, '#000');
     for (const { x, z } of monsters.markers()) dot(x, z, 2.2, '#ff3a2a');
+    // The cage as a pink square, and Felonius as a teal dot once he's out.
+    for (const { x, z, kind } of felonius.markers()) {
+      if (kind === 'cage') {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#ff5fc8';
+        ctx.strokeRect(mapX(x) - 3.5, mapY(z) - 3.5, 7, 7);
+      } else {
+        dot(x, z, 3.2, '#2fd0d0', '#000');
+      }
+    }
     ctx.drawImage(fog, 0, 0, SIZE, SIZE);
     drawPlayer(position, facing);
   }

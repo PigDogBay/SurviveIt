@@ -336,5 +336,25 @@ export function createSounds() {
     thump.stop(now + 0.25);
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip };
+  // A rising, triumphant tune for winning.
+  function fanfare() {
+    const now = start();
+    for (const [frequency, delay, length] of [
+      [523, 0, 0.18],
+      [659, 0.18, 0.18],
+      [784, 0.36, 0.18],
+      [1047, 0.54, 0.8],
+      [784, 0.54, 0.8],
+      [659, 0.54, 0.8],
+    ]) {
+      const tone = audio.createOscillator();
+      tone.type = 'triangle';
+      tone.frequency.value = frequency;
+      tone.connect(envelope(now + delay, 0.25, length));
+      tone.start(now + delay);
+      tone.stop(now + delay + length + 0.05);
+    }
+  }
+
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare };
 }
