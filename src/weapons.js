@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DUNGEON_PICKUPS } from './dungeon.js';
 import { heightAt } from './terrain.js';
-import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildSword, buildTaki, buildTakiGun } from './weapon-models.js';
+import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildShield, buildSword, buildTaki, buildTakiGun } from './weapon-models.js';
 
 const PICKUP_DISTANCE = 1.4;
 const SWITCH_TIME = 0.25;
@@ -40,6 +40,8 @@ const SWORD_REACH = 2.6;
 const SWORD_WIDTH = Math.cos(1);
 const SWORD_DAMAGE = 6;
 const SWING_TIME = 0.3;
+// With the sword comes a shield, which takes this much off every hit.
+const SHIELD_PROTECTION = 0.8;
 
 // Taki gun: shoots spicy rolled Takis that fly through the air. One in the
 // eyes blinds a monster for a while; it does no damage.
@@ -96,7 +98,18 @@ const WEAPONS = [
     hold: true,
     ammo: { start: 40, max: 100, box: 30 },
   },
-  { name: 'Sword', spot: [14, 16], glow: 0xd8e4ff, build: buildSword, muzzle: -0.6, reloadTime: 0.6, kick: 0, swing: true },
+  {
+    name: 'Sword',
+    spot: [14, 16],
+    glow: 0xd8e4ff,
+    build: buildSword,
+    muzzle: -0.6,
+    reloadTime: 0.6,
+    kick: 0,
+    swing: true,
+    shield: true,
+    found: 'You found a sword and shield! Click to swing. The shield blocks most damage',
+  },
   {
     name: 'Taki gun',
     spot: [28, -32],
@@ -173,6 +186,13 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   held.position.set(0.24, -0.25, -0.42);
   held.rotation.y = -0.1;
   camera.add(held);
+
+  // The shield, in the bottom-left of the view, turned so its front shows.
+  const shield = buildShield();
+  shield.scale.setScalar(0.75);
+  shield.visible = false;
+  camera.add(shield);
+  let sinceBlock = 1;
 
   const muzzleFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, depthWrite: false, blending: THREE.AdditiveBlending }));
   muzzleFlash.scale.set(0.5, 0.5, 1);
@@ -570,7 +590,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
         equip(weapon);
         const name = inSentence(weapon);
         const how = weapon.hold ? 'Hold click to spray fire' : weapon.swing ? 'Click to swing' : 'Click to fire';
-        showMessage(`You found a ${name}! ${owned().length === 1 || how !== 'Click to fire' ? how : 'Switch with the number keys'}`);
+        showMessage(weapon.found ?? `You found a ${name}! ${owned().length === 1 || how !== 'Click to fire' ? how : 'Switch with the number keys'}`);
       }
     }
 
@@ -586,7 +606,17 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     if (!current) return;
     for (const weapon of WEAPONS) weapon.sinceShot += delta;
     sinceSwitch += delta;
+    sinceBlock += delta;
     if (spraying) fire();
+
+    // The shield comes up with the sword, and jolts back when it blocks a hit.
+    shield.visible = Boolean(current.shield);
+    if (shield.visible) {
+      const rise = 1 - Math.min(1, sinceSwitch / SWITCH_TIME);
+      const jolt = Math.exp(-sinceBlock * 12);
+      shield.position.set(-0.36, -0.32 - 0.25 * rise, -0.52 + 0.08 * jolt);
+      shield.rotation.set(-0.15 + 0.2 * jolt, 0.55, 0.1);
+    }
 
     // Kick back when fired, then dip down to reload. A new weapon rises
     // into view when switched to.
@@ -643,6 +673,14 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     update,
     markers,
     refill,
+    // How much of each hit the shield stops, while the sword is out.
+    shield: {
+      protection: () => (current?.shield ? SHIELD_PROTECTION : 0),
+      onBlock() {
+        sinceBlock = 0;
+        sounds.clang();
+      },
+    },
     // Whether the minion has any weapon that uses ammo.
     needsAmmo: () => owned().some((weapon) => weapon.ammo),
     hasAny: () => owned().length > 0,

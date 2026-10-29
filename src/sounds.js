@@ -507,6 +507,28 @@ export function createSounds() {
     }
   }
 
+  // A hit ringing off the metal shield.
+  function clang() {
+    const now = start();
+    for (const [frequency, loudness] of [
+      [880, 0.3],
+      [1390, 0.2],
+      [2210, 0.15],
+      [3350, 0.08],
+    ]) {
+      const ring = audio.createOscillator();
+      ring.type = 'sine';
+      ring.frequency.value = frequency;
+      ring.connect(envelope(now, loudness, 0.6));
+      ring.start(now);
+      ring.stop(now + 0.65);
+    }
+    const knock = audio.createBiquadFilter();
+    knock.type = 'bandpass';
+    knock.frequency.value = 1800;
+    noiseSource(now, 0.05).connect(knock).connect(envelope(now, 0.6, 0.05));
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -527,5 +549,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang };
 }

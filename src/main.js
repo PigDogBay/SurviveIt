@@ -58,10 +58,12 @@ const moon = new THREE.Mesh(
 scene.add(moon);
 
 // The minion's torch, held in the left hand, away from the weapon in the
-// right. Press F to switch it on and off.
+// right. Its light starts a little ahead of the hands, so it lights the woods
+// but doesn't wash out the weapon or the shield to white. Press F to switch
+// it on and off.
 const torch = new THREE.SpotLight(0xfff1d0, 30, 35, Math.PI / 7, 0.45, 1.6);
-torch.position.set(-0.25, -0.2, 0);
-torch.target.position.set(0, 0, -1);
+torch.position.set(-0.25, -0.2, -0.6);
+torch.target.position.set(0, 0, -1.6);
 camera.add(torch, torch.target);
 scene.add(camera);
 
@@ -113,6 +115,8 @@ const success = document.getElementById('success');
 let gameOver = false;
 
 const health = createHealth({
+  // The shield that comes with the sword blocks most of each hit.
+  shield: weapons.shield,
   onDeath() {
     gameOver = true;
     player.controls.unlock();

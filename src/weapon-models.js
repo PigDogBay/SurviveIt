@@ -319,3 +319,37 @@ export function buildTakiGun() {
   grip(gun, blue);
   return gun;
 }
+
+// Gru's "G" logo in a yellow circle, like the pocket on a minion's overalls.
+function logoTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f2cf3a';
+  ctx.beginPath();
+  ctx.arc(32, 32, 31, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1c1c20';
+  ctx.font = 'bold 44px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('G', 32, 35);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+// The shield that comes with the sword: round and minion blue, with a steel
+// rim, a yellow ring and Gru's logo in the middle. Its front faces +z, towards
+// whoever is holding it.
+export function buildShield() {
+  const shield = new THREE.Group();
+  const face = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.025, 32).rotateX(Math.PI / 2), blue);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.014, 8, 40), steel);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.008, 6, 32), yellow);
+  ring.position.z = 0.014;
+  const logo = new THREE.Mesh(new THREE.CircleGeometry(0.075, 32), new THREE.MeshBasicMaterial({ map: logoTexture() }));
+  logo.position.z = 0.0135;
+  shield.add(face, rim, ring, logo);
+  return shield;
+}

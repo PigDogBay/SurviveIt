@@ -1,8 +1,10 @@
 export const MAX_HEALTH = 100;
 
 // Tracks the minion's health and keeps the health bar on screen in sync.
-// Monsters call damage(); med kits call heal().
-export function createHealth({ onDeath }) {
+// Monsters call damage(); med kits call heal(). `shield.protection()` is how
+// much of each hit is blocked (0 to 1), and `shield.onBlock` is told when
+// it blocks one.
+export function createHealth({ onDeath, shield = { protection: () => 0, onBlock() {} } }) {
   const bar = document.getElementById('health-fill');
   const label = document.getElementById('health-value');
   const hud = document.getElementById('health');
@@ -27,7 +29,9 @@ export function createHealth({ onDeath }) {
 
   function damage(amount) {
     if (health <= 0) return;
-    health = Math.max(0, health - amount);
+    const blocked = shield.protection();
+    if (blocked > 0) shield.onBlock();
+    health = Math.max(0, health - amount * (1 - blocked));
     flashScreen('hurt');
     render();
     if (health === 0) onDeath();
