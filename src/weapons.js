@@ -43,8 +43,11 @@ const SWING_TIME = 0.3;
 // With the sword comes a shield, which takes this much off every hit.
 const SHIELD_PROTECTION = 0.8;
 
-// Taki gun: shoots spicy rolled Takis that fly through the air. One in the
-// eyes blinds a monster for a while; it does no damage.
+// Taki gun: rapid-fires spicy rolled Takis that fly through the air while
+// the button is held. One in the eyes blinds a monster for a while and does
+// a little damage: 5 hits kill a monster (6 health). 1.2 would be exactly a
+// fifth, but five lots of it can come out a hair under 6 in computer maths.
+const TAKI_DAMAGE = 1.25;
 const TAKI_SPEED = 32;
 const TAKI_RANGE = 40;
 const TAKI_DROP = 3;
@@ -116,9 +119,10 @@ const WEAPONS = [
     glow: 0xff2a6a,
     build: buildTakiGun,
     muzzle: -0.39,
-    reloadTime: 0.35,
-    kick: 0.25,
-    ammo: { start: 20, max: 50, box: 12 },
+    reloadTime: 0.12,
+    kick: 0.12,
+    auto: true,
+    ammo: { start: 60, max: 150, box: 40 },
     // Takis is a name, so it keeps its capital letter in messages.
     properName: true,
   },
@@ -511,7 +515,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
       if (hit && !blocked) {
         monsters.blind(hit.target, BLIND_TIME);
         sounds.crunch();
-        showHits(1, 0);
+        showHits(1, monsters.hurt(hit.target, TAKI_DAMAGE, takiDirection) ? 1 : 0);
       }
       if (hit || blocked || taki.userData.travelled > TAKI_RANGE) {
         group.remove(taki);
@@ -589,7 +593,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
         group.remove(pickup);
         equip(weapon);
         const name = inSentence(weapon);
-        const how = weapon.hold ? 'Hold click to spray fire' : weapon.swing ? 'Click to swing' : 'Click to fire';
+        const how = weapon.hold ? 'Hold click to spray fire' : weapon.auto ? 'Hold click for rapid fire' : weapon.swing ? 'Click to swing' : 'Click to fire';
         showMessage(weapon.found ?? `You found a ${name}! ${owned().length === 1 || how !== 'Click to fire' ? how : 'Switch with the number keys'}`);
       }
     }
@@ -608,6 +612,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     sinceSwitch += delta;
     sinceBlock += delta;
     if (spraying) fire();
+    // Automatic weapons keep firing while the button is held, until they run dry.
+    if (current.auto && triggerHeld && sinceSwitch >= SWITCH_TIME && current.rounds > 0) fire();
 
     // The shield comes up with the sword, and jolts back when it blocks a hit.
     shield.visible = Boolean(current.shield);
