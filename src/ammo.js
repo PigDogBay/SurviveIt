@@ -42,9 +42,9 @@ function isClear(x, z, colliders) {
   return colliders.every((c) => Math.hypot(x - c.x, z - c.z) > c.radius + 1);
 }
 
-// Scatters ammo boxes through the woods. Walking into one tops up every
-// weapon the minion has, but only if one of them needs it, so boxes aren't
-// wasted.
+// Scatters ammo boxes through the woods. Walking into one tops up one of
+// the minion's weapons, picked at random from those that need it. If none
+// do, the box is left for later.
 export function createAmmo(colliders) {
   const random = createRandom(57);
   const geometry = new THREE.BoxGeometry(0.5, 0.32, 0.36);

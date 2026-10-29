@@ -80,7 +80,7 @@ const WEAPONS = [
     muzzle: -0.46,
     reloadTime: 2,
     kick: 0.6,
-    ammo: { start: 6, max: 15, box: 4 },
+    ammo: { start: 6, max: 6, box: 4 },
   },
   {
     name: 'Freeze ray',
@@ -101,7 +101,7 @@ const WEAPONS = [
     reloadTime: 0.3,
     kick: 0.1,
     hold: true,
-    ammo: { start: 40, max: 100, box: 30 },
+    ammo: { start: 20, max: 20, box: 20 },
   },
   {
     name: 'Sword',
@@ -124,7 +124,7 @@ const WEAPONS = [
     reloadTime: 0.12,
     kick: 0.12,
     auto: true,
-    ammo: { start: 60, max: 150, box: 40 },
+    ammo: { start: 30, max: 30, box: 30 },
     // Takis is a name, so it keeps its capital letter in messages.
     properName: true,
   },
@@ -662,20 +662,18 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     }));
   }
 
-  // An ammo box: tops up every weapon the minion has that isn't full.
-  // Returns what was added, such as ['Blunderbuss +8'], or null if nothing needed it.
+  // An ammo box: tops up one weapon, picked at random from those the minion
+  // has that aren't full. Returns what was added, such as ['Blunderbuss +8'],
+  // or null if nothing needed it.
   function refill() {
-    const added = [];
-    for (const weapon of owned()) {
-      if (!weapon.ammo || weapon.rounds >= weapon.ammo.max) continue;
-      const amount = Math.min(weapon.ammo.box, weapon.ammo.max - weapon.rounds);
-      weapon.rounds += amount;
-      added.push(`${weapon.name} +${amount}`);
-    }
-    if (added.length === 0) return null;
+    const hungry = owned().filter((weapon) => weapon.ammo && weapon.rounds < weapon.ammo.max);
+    if (hungry.length === 0) return null;
+    const weapon = hungry[Math.floor(Math.random() * hungry.length)];
+    const amount = Math.min(weapon.ammo.box, weapon.ammo.max - weapon.rounds);
+    weapon.rounds += amount;
     sounds.reload();
     renderSlots();
-    return added;
+    return [`${weapon.name} +${amount}`];
   }
 
   return {
