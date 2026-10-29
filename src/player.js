@@ -6,8 +6,8 @@ import { heightAt } from './terrain.js';
 // Minions are short, so the camera sits low.
 const EYE_HEIGHT = 1.25;
 const PLAYER_RADIUS = 0.35;
-const WALK_SPEED = 4.5;
-const RUN_SPEED = 8;
+// The minion always runs.
+const SPEED = 8;
 const JUMP_SPEED = 6;
 const GRAVITY = 18;
 
@@ -20,15 +20,12 @@ export function createPlayer(camera, domElement, collisions) {
   let verticalSpeed = 0;
   let onGround = true;
   let bobTime = 0;
-  // Shift switches between running and walking, so it needn't be held down.
-  let running = false;
   let groundY = heightAt(0, 0);
 
   camera.position.set(0, groundY + EYE_HEIGHT, 0);
 
   window.addEventListener('keydown', (event) => {
     keys.add(event.code);
-    if ((event.code === 'ShiftLeft' || event.code === 'ShiftRight') && !event.repeat && controls.isLocked) running = !running;
     if (event.code === 'Space' && onGround && controls.isLocked) {
       verticalSpeed = JUMP_SPEED;
       onGround = false;
@@ -47,7 +44,6 @@ export function createPlayer(camera, domElement, collisions) {
     );
     if (input.lengthSq() > 1) input.normalize();
 
-    const speed = running ? RUN_SPEED : WALK_SPEED;
 
     camera.getWorldDirection(forward);
     forward.y = 0;
@@ -55,8 +51,8 @@ export function createPlayer(camera, domElement, collisions) {
     right.crossVectors(forward, camera.up);
 
     const target = new THREE.Vector3()
-      .addScaledVector(forward, input.y * speed)
-      .addScaledVector(right, input.x * speed);
+      .addScaledVector(forward, input.y * SPEED)
+      .addScaledVector(right, input.x * SPEED);
     // Ease towards the target speed so starting and stopping feel smooth.
     velocity.lerp(target, 1 - Math.exp(-12 * delta));
 
@@ -76,7 +72,7 @@ export function createPlayer(camera, domElement, collisions) {
     }
 
     const moving = onGround && velocity.lengthSq() > 0.5;
-    bobTime = moving ? bobTime + delta * (running ? 14 : 10) : 0;
+    bobTime = moving ? bobTime + delta * 14 : 0;
     position.y = feetY + EYE_HEIGHT + bobOffset();
   }
 
