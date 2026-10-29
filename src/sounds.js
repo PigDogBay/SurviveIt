@@ -1,5 +1,5 @@
-// Weapon sounds made with Web Audio, so there are no sound files to load.
-// The audio starts on the first shot, because browsers only allow sound
+// Game sounds made with Web Audio, so there are no sound files to load.
+// The audio starts on the first sound, because browsers only allow sound
 // after the player has clicked.
 export function createSounds() {
   let audio;
@@ -92,5 +92,42 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap };
+  // Two bright notes, for finding something special.
+  function chime() {
+    const now = start();
+    for (const [frequency, delay] of [
+      [880, 0],
+      [1320, 0.12],
+    ]) {
+      const tone = audio.createOscillator();
+      tone.type = 'sine';
+      tone.frequency.value = frequency;
+      tone.connect(envelope(now + delay, 0.3, 0.9));
+      tone.start(now + delay);
+      tone.stop(now + delay + 1);
+    }
+  }
+
+  // Heavy stone grinding, for the temple door.
+  function rumble(length) {
+    const now = start();
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 140;
+    const gain = audio.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(1.2, now + 0.3);
+    gain.gain.setValueAtTime(1.2, now + length - 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + length);
+    gain.connect(audio.destination);
+    // The noise buffer is 1 s long, so loop it for longer sounds.
+    const source = audio.createBufferSource();
+    source.buffer = noise;
+    source.loop = true;
+    source.connect(filter).connect(gain);
+    source.start(now);
+    source.stop(now + length);
+  }
+
+  return { bang, fart, zap, chime, rumble };
 }

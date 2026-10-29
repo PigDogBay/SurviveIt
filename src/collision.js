@@ -8,13 +8,30 @@ export function createCollisionGrid(colliders) {
   const cells = new Map();
   const key = (cx, cz) => `${cx},${cz}`;
 
-  for (const collider of colliders) {
-    const { x, z, radius } = collider;
+  // Every cell a collider overlaps.
+  function cellKeys({ x, z, radius }) {
+    const keys = [];
     for (let cx = Math.floor((x - radius) / CELL); cx <= Math.floor((x + radius) / CELL); cx++) {
       for (let cz = Math.floor((z - radius) / CELL); cz <= Math.floor((z + radius) / CELL); cz++) {
-        const k = key(cx, cz);
-        if (!cells.has(k)) cells.set(k, []);
-        cells.get(k).push(collider);
+        keys.push(key(cx, cz));
+      }
+    }
+    return keys;
+  }
+
+  for (const collider of colliders) {
+    for (const k of cellKeys(collider)) {
+      if (!cells.has(k)) cells.set(k, []);
+      cells.get(k).push(collider);
+    }
+  }
+
+  // Takes colliders out of the grid, such as a door that has opened.
+  function remove(removed) {
+    for (const collider of removed) {
+      for (const k of cellKeys(collider)) {
+        const list = cells.get(k);
+        list.splice(list.indexOf(collider), 1);
       }
     }
   }
@@ -69,7 +86,7 @@ export function createCollisionGrid(colliders) {
     return nearest <= maxDistance ? nearest : Infinity;
   }
 
-  return { pushOut, rayDistance };
+  return { pushOut, rayDistance, remove };
 }
 
 // Distance along a ray to where it enters an upright circle (seen from above),

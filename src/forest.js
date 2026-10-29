@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createRandom, range } from './random.js';
-import { heightAt, WORLD_RADIUS } from './terrain.js';
+import { heightAt, TEMPLE, WORLD_RADIUS } from './terrain.js';
 
 const SPAWN_CLEARING = 9;
 const CELL = 4.5;
@@ -57,8 +57,8 @@ function instanced(geometry, material, count) {
   return mesh;
 }
 
-// Plants trees and rocks over the whole map, leaving a clearing where the
-// player starts. Returns the meshes plus circular colliders for the player.
+// Plants trees and rocks over the whole map, leaving clearings where the
+// player starts and around the temple. Returns the meshes plus circular colliders for the player.
 export function createForest() {
   const random = createRandom(2024);
   const pines = [];
@@ -76,15 +76,22 @@ export function createForest() {
 
       // Thicker woods past the edge of the map so it feels endless.
       const outside = distance > WORLD_RADIUS;
+      // The random numbers are still drawn inside the temple clearing, so the
+      // rest of the forest keeps its layout.
+      const cleared = Math.hypot(x - TEMPLE.x, z - TEMPLE.z) < TEMPLE.clearing;
       const roll = random();
       if (roll < (outside ? 0.85 : 0.5)) {
         const scale = range(random, 0.8, 1.7);
         const tree = { x, z, scale, rotation: range(random, 0, Math.PI * 2) };
-        (random() < 0.82 ? pines : deadTrees).push(tree);
+        const kind = random() < 0.82 ? pines : deadTrees;
+        if (cleared) continue;
+        kind.push(tree);
         colliders.push({ x, z, radius: 0.35 * scale + 0.3 });
       } else if (roll < 0.6 && !outside) {
         const scale = range(random, 0.3, 1.4);
-        rocks.push({ x, z, scale, rotation: range(random, 0, Math.PI * 2) });
+        const rock = { x, z, scale, rotation: range(random, 0, Math.PI * 2) };
+        if (cleared) continue;
+        rocks.push(rock);
         if (scale > 0.6) colliders.push({ x, z, radius: scale * 0.95 });
       }
     }

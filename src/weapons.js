@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { heightAt } from './terrain.js';
 import { buildBlunderbuss, buildFartGun, buildFreezeRay } from './weapon-models.js';
-import { createSounds } from './sounds.js';
 
 const PICKUP_DISTANCE = 1.4;
 const SWITCH_TIME = 0.25;
@@ -67,10 +66,9 @@ function gasTexture() {
 
 // The minion's weapons: find each one glowing in the woods, switch with the
 // number keys or mouse wheel, and click to fire.
-export function createWeapons({ camera, controls, monsters, collisions, showMessage }) {
+export function createWeapons({ camera, controls, monsters, collisions, sounds, showMessage }) {
   const glow = glowTexture();
   const gas = gasTexture();
-  const sounds = createSounds();
   const group = new THREE.Group();
 
   // Everything held sits in the bottom-right of the view.

@@ -6,6 +6,9 @@ import { createHealth } from './health.js';
 import { createMedkits } from './medkits.js';
 import { createMonsters } from './monsters.js';
 import { createWeapons } from './weapons.js';
+import { createSounds } from './sounds.js';
+import { createKeys } from './keys.js';
+import { createTemple } from './temple.js';
 import { createCollisionGrid } from './collision.js';
 
 const NIGHT = 0x0b1418;
@@ -60,6 +63,14 @@ scene.add(forest.group);
 const fireflies = createFireflies();
 scene.add(fireflies.points);
 
+const sounds = createSounds();
+const keys = createKeys({ sounds, showMessage });
+scene.add(keys.group);
+const temple = createTemple({ keys, sounds, showMessage });
+scene.add(temple.group);
+// The temple's walls block the way just like trees do.
+forest.colliders.push(...temple.colliders);
+
 const medkits = createMedkits(forest.colliders);
 scene.add(medkits.group);
 
@@ -69,7 +80,7 @@ scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
 
-const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, showMessage });
+const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, sounds, showMessage });
 scene.add(weapons.group);
 
 const menu = document.getElementById('menu');
@@ -123,6 +134,8 @@ renderer.setAnimationLoop((timestamp) => {
   fireflies.update(timer.getElapsed());
   if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
   if (!dead) weapons.update(delta, timer.getElapsed(), camera.position);
+  if (!dead) keys.update(timer.getElapsed(), camera.position);
+  if (!dead) temple.update(delta, timer.getElapsed(), camera.position, collisions);
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
 
