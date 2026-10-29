@@ -8,7 +8,9 @@ const hex = (colour) => `#${colour.toString(16).padStart(6, '0')}`;
 // Every key in the game. The temple key is plain gold; each chamber key
 // has a gem that matches the ring on its chamber's door. A key with no
 // `spot` is put in place by whatever hides it (the red key is in the dungeon
-// under the temple). The cage key goes here later.
+// under the temple). A `waiting` key isn't in the woods until something
+// reveals it (the blue key appears when the switch in the red chamber is
+// pressed). The cage key goes here later.
 const KEYS = [
   {
     id: 'temple',
@@ -23,6 +25,7 @@ const KEYS = [
     ['green', 'Green', 0x5ae05a, [10, 125]],
     ['purple', 'Purple', 0xb46aff, [-30, -130]],
   ].map(([id, colourName, colour, spot]) => ({
+    waiting: id === 'blue',
     id,
     name: `${colourName} chamber key`,
     colour,
@@ -112,7 +115,7 @@ export function createKeys({ colliders, sounds, showMessage }) {
     key.pickup.add(key.model, glow);
     key.floor = heightAt(x, z);
     key.pickup.position.set(x, key.floor + 0.7, z);
-    group.add(key.pickup);
+    if (!key.waiting) group.add(key.pickup);
     key.collected = false;
   }
 
@@ -125,7 +128,7 @@ export function createKeys({ colliders, sounds, showMessage }) {
 
   function update(time, playerPosition) {
     for (const key of KEYS) {
-      if (key.collected) continue;
+      if (key.collected || key.waiting) continue;
       const { pickup } = key;
       pickup.position.y = key.floor + 0.7 + Math.sin(time * 2) * 0.1;
       key.model.rotation.y = time * 1.5;
@@ -148,13 +151,19 @@ export function createKeys({ colliders, sounds, showMessage }) {
     has: (id) => carried.has(id),
     // Where the keys not yet found are, for the map. Hidden keys stay off it.
     markers: () =>
-      KEYS.filter((key) => !key.collected && !key.hidden).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z, colour: hex(key.colour) })),
+      KEYS.filter((key) => !key.collected && !key.hidden && !key.waiting).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z, colour: hex(key.colour) })),
     // Puts a key with no `spot` in place, with its floor at `y`. It stays off the map.
     place(id, { x, y, z }) {
       const key = keyInfo(id);
       key.floor = y;
       key.hidden = true;
       key.pickup.position.set(x, y + 0.7, z);
+    },
+    // Makes a waiting key appear where it lies.
+    reveal(id) {
+      const key = keyInfo(id);
+      key.waiting = false;
+      group.add(key.pickup);
     },
     // Uses up a key, such as when it unlocks a door.
     use(id) {

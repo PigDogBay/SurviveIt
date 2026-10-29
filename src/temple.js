@@ -13,12 +13,16 @@ const DOOR_WIDTH = 3.2;
 const DOOR_HEIGHT = 4;
 // How close the minion must be to try the door.
 const DOOR_REACH = 3.5;
+// How close the minion must be to press a switch.
+const SWITCH_REACH = 1.1;
 const DOOR_OPEN_TIME = 2.5;
 
 // Hidden chambers, two on each side of the hall, each opened by its own key.
 // `side` is -1 for the left wall and 1 for the right; `z` is where along it.
+// A chamber that `reveals` a key has a switch on its back wall, in that key's
+// colour; touching it makes the key appear in the woods.
 const CHAMBERS = [
-  { key: 'red', side: -1, z: 4 },
+  { key: 'red', side: -1, z: 4, reveals: 'blue' },
   { key: 'blue', side: -1, z: -4 },
   { key: 'green', side: 1, z: 4 },
   { key: 'purple', side: 1, z: -4 },
@@ -141,6 +145,24 @@ export function createTemple({ keys, sounds, showMessage }) {
     post(x, pillarZ, 0.6);
   }
 
+  // A big round button on a stone plate, on a wall facing `facing` along x
+  // (1 or -1). It glows in the colour of the key it brings out.
+  const switches = [];
+  function wallSwitch(x, z, facing, reveals) {
+    const colour = keyInfo(reveals).colour;
+    const plate = new THREE.Group();
+    plate.add(stoneBox(0.9, 0.9, 0.1, darkStone));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.05, 10, 32), new THREE.MeshStandardMaterial({ color: 0x8a8070, roughness: 0.5 }));
+    ring.position.z = 0.07;
+    const glow = new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: 0.5, roughness: 0.3 });
+    const button = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.12, 28).rotateX(Math.PI / 2), glow);
+    button.position.z = 0.1;
+    plate.add(ring, button);
+    plate.rotation.y = (facing * Math.PI) / 2;
+    add(plate, x + facing * 0.05, 1.3, z);
+    switches.push({ button, glow, reveals, position: toWorld(x, z), pressed: false });
+  }
+
   // The chambers: small stone rooms against the outside of the side walls,
   // each with a glowing gem on a stand in the middle.
   const gems = [];
@@ -168,6 +190,8 @@ export function createTemple({ keys, sounds, showMessage }) {
     post(standX, z, 0.55);
     const gem = add(new THREE.Mesh(gemGeometry, new THREE.MeshBasicMaterial({ color: colour })), standX, 1.45, z);
     gems.push(gem);
+
+    if (chamber.reveals) wallSwitch(side * (halfWidth + CHAMBER_WIDTH - WALL), z, -side, chamber.reveals);
   }
 
   // Sealed doors: stone slabs with a coloured ring around a keyhole. They
@@ -265,6 +289,23 @@ export function createTemple({ keys, sounds, showMessage }) {
       gem.rotation.y = time * 1.2 + i;
       gem.position.y = 1.45 + Math.sin(time * 2 + i) * 0.06;
     });
+
+    for (const s of switches) {
+      if (s.pressed) continue;
+      // Pulses gently until it's pressed, to catch the eye.
+      s.glow.emissiveIntensity = 0.5 + Math.sin(time * 3) * 0.3;
+      const distance = Math.hypot(playerPosition.x - s.position.x, playerPosition.z - s.position.z);
+      // Out of reach from the dungeon underneath.
+      if (distance > SWITCH_REACH || playerPosition.y < UNDERGROUND) continue;
+      s.pressed = true;
+      s.button.position.z = 0.04;
+      s.glow.emissiveIntensity = 1.6;
+      keys.reveal(s.reveals);
+      sounds.click();
+      sounds.chime();
+      const name = keyInfo(s.reveals).name.toLowerCase();
+      showMessage(`Click! The ${name} has appeared somewhere in the forest`);
+    }
 
     for (const d of doors) {
       if (d.state === 'opening') {
