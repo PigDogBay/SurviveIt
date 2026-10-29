@@ -19,12 +19,15 @@ export function createPlayer(camera, domElement, collisions) {
   let verticalSpeed = 0;
   let onGround = true;
   let bobTime = 0;
+  // Shift switches between running and walking, so it needn't be held down.
+  let running = false;
   let groundY = heightAt(0, 0);
 
   camera.position.set(0, groundY + EYE_HEIGHT, 0);
 
   window.addEventListener('keydown', (event) => {
     keys.add(event.code);
+    if ((event.code === 'ShiftLeft' || event.code === 'ShiftRight') && !event.repeat && controls.isLocked) running = !running;
     if (event.code === 'Space' && onGround && controls.isLocked) {
       verticalSpeed = JUMP_SPEED;
       onGround = false;
@@ -43,7 +46,6 @@ export function createPlayer(camera, domElement, collisions) {
     );
     if (input.lengthSq() > 1) input.normalize();
 
-    const running = keys.has('ShiftLeft') || keys.has('ShiftRight');
     const speed = running ? RUN_SPEED : WALK_SPEED;
 
     camera.getWorldDirection(forward);
