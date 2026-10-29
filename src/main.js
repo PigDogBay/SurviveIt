@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createTerrain } from './terrain.js';
+import { createTerrain, heightAt } from './terrain.js';
 import { createForest, createFireflies } from './forest.js';
 import { createPlayer } from './player.js';
 import { createHealth } from './health.js';
@@ -18,6 +18,7 @@ import { combineTargets } from './targets.js';
 import { createGru } from './gru.js';
 import { createEasterEggs } from './easter-eggs.js';
 import { createCrows } from './crows.js';
+import { createUFO } from './ufo.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -106,6 +107,17 @@ const felonius = createFelonius({
 });
 const crows = createCrows({ felonius, sounds });
 scene.add(crows.group);
+// Shooting the UFO drops the Alien egg below it, clear of any tree.
+const ufo = createUFO({
+  sounds,
+  showMessage,
+  onShot(where) {
+    const landing = new THREE.Vector3(where.x, heightAt(where.x, where.z), where.z);
+    collisions.pushOut(landing, 1);
+    easterEggs.drop('Alien egg', new THREE.Vector3(landing.x, where.y - 1, landing.z), camera.position);
+  },
+});
+scene.add(ufo.group);
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
@@ -128,7 +140,7 @@ scene.add(monsters.group);
 const player = createPlayer(camera, document.body, collisions);
 
 // Weapons can hit the monsters and Chookie alike.
-const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, chookie, crows), collisions, sounds, showMessage });
+const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, chookie, crows, ufo), collisions, sounds, showMessage });
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
@@ -234,6 +246,7 @@ renderer.setAnimationLoop((timestamp) => {
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!gameOver && player.controls.isLocked) monsters.update(delta, camera.position, health);
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
+  if (!gameOver && player.controls.isLocked) ufo.update(delta, timer.getElapsed());
   if (!gameOver && player.controls.isLocked) crows.update(delta, timer.getElapsed(), camera.position, health);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
   if (!gameOver && player.controls.isLocked) gru.update(camera.position);

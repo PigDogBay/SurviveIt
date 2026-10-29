@@ -566,6 +566,26 @@ export function createSounds() {
     }
   }
 
+  // A wobbly, rising "woooo" as the UFO zooms off into space.
+  function ufo() {
+    const now = start();
+    const length = 1.6;
+    const tone = audio.createOscillator();
+    tone.type = 'sine';
+    tone.frequency.setValueAtTime(260, now);
+    tone.frequency.exponentialRampToValueAtTime(2200, now + length);
+    const wobble = audio.createOscillator();
+    wobble.frequency.value = 9;
+    const wobbleDepth = audio.createGain();
+    wobbleDepth.gain.value = 60;
+    wobble.connect(wobbleDepth).connect(tone.frequency);
+    tone.connect(envelope(now, 0.35, length));
+    for (const oscillator of [tone, wobble]) {
+      oscillator.start(now);
+      oscillator.stop(now + length);
+    }
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -586,5 +606,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow, ufo };
 }

@@ -285,11 +285,69 @@ function drawShow(ctx, width, height, time) {
   }
 }
 
+// A cute green alien, our own design: a wide head, big black eyes with a
+// shine, a little smile and two antennae with balls on top.
+function drawAlien(ctx, cx, cy) {
+  const green = '#3a9a2a';
+  const outline = '#14400e';
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  // Antennae.
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 7;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + side * 35, cy - 80);
+    ctx.quadraticCurveTo(cx + side * 55, cy - 140, cx + side * 85, cy - 165);
+    ctx.stroke();
+    ctx.fillStyle = '#f2e04a';
+    ctx.beginPath();
+    ctx.arc(cx + side * 88, cy - 168, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    ctx.lineWidth = 7;
+  }
+  // A wide head, narrowing to a pointed chin.
+  ctx.fillStyle = green;
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(cx - 115, cy - 10);
+  ctx.bezierCurveTo(cx - 120, cy - 130, cx + 120, cy - 130, cx + 115, cy - 10);
+  ctx.bezierCurveTo(cx + 105, cy + 70, cx + 40, cy + 130, cx, cy + 135);
+  ctx.bezierCurveTo(cx - 40, cy + 130, cx - 105, cy + 70, cx - 115, cy - 10);
+  ctx.fill();
+  ctx.stroke();
+  // Big black almond eyes, each with a shine.
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.translate(cx + side * 50, cy + 5);
+    ctx.rotate(side * 0.45);
+    ctx.fillStyle = '#0c0c14';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 42, 24, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(-side * 12, -8, 9, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // A little smile.
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy + 75);
+  ctx.quadraticCurveTo(cx, cy + 92, cx + 22, cy + 75);
+  ctx.stroke();
+}
+
 // Every easter egg: its name (for the list at the end), where it is (in the
 // temple's own space, z towards the front door, on a dungeon floor if
 // `underground`), its colours, and the picture on it. The picture faces
 // `look` (a direction in the temple's space), or else away from the temple.
-// An egg that `appears` isn't there until something brings it out.
+// An egg that `appears` isn't there until something brings it out. One that
+// is `dropped` has no spot: it falls from wherever `drop` is told.
 const EGGS = [
   { name: 'Sabrina Carpenter egg', spot: [0, -12.5], colour: '#7cbce6', band: '#e86aa4', draw: drawSabrina },
   // Pops up beside the TV in the first dungeon's west room once the VHS tape
@@ -304,6 +362,8 @@ const EGGS = [
     band: '#e07a2a',
     draw: drawPeteEgg,
   },
+  // Dropped by the UFO when it's shot.
+  { name: 'Alien egg', dropped: true, appears: true, colour: '#7ae05a', band: '#3a1f6a', draw: drawAlien },
 ];
 
 // The couch is near the start, with the VHS tape floating over it. The TV is
@@ -460,7 +520,7 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
   const colliders = [];
   const geometry = eggGeometry();
   const eggs = EGGS.map((egg, i) => {
-    const [lx, lz] = egg.spot;
+    const [lx, lz] = egg.spot ?? [0, 0];
     const ground = egg.underground ? onDungeonFloor(lx, lz) : null;
     const [x, z] = ground ? [ground.x, ground.z] : templeToWorld(lx, lz);
     const floor = ground ? ground.y : heightAt(x, z);
@@ -475,8 +535,22 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
       collider = { x, z, radius: EGG_RADIUS + 0.05, above: floor - 1.5 };
       colliders.push(collider);
     }
-    return { name: egg.name, mesh, collider, floor, phase: i * 1.7, collected: false, waiting: Boolean(egg.appears), appeared: 0 };
+    return { name: egg.name, mesh, collider, floor, phase: i * 1.7, collected: false, waiting: Boolean(egg.appears), appeared: 0, falling: false, fallSpeed: 0 };
   });
+
+  // Drops a `dropped` egg from `from` (in the world): it falls to the ground
+  // below, with its picture turned towards `facing`.
+  function drop(name, from, facing) {
+    const egg = eggs.find((e) => e.name === name);
+    egg.waiting = false;
+    egg.falling = true;
+    egg.fallSpeed = 0;
+    egg.floor = heightAt(from.x, from.z);
+    egg.mesh.position.copy(from);
+    egg.mesh.rotation.y = Math.atan2(facing.x - from.x, facing.z - from.z) + Math.PI;
+    group.add(egg.mesh);
+  }
+  let lastTime = null;
 
   // The couch, with the VHS tape floating over the seat.
   const couch = buildCouch();
@@ -528,6 +602,8 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
   const items = document.getElementById('items');
 
   function update(time, playerPosition, collisions) {
+    const delta = lastTime === null ? 0 : Math.min(0.1, Math.max(0, time - lastTime));
+    lastTime = time;
     const feet = playerPosition.y - 1.25;
     const underground = playerPosition.y < UNDERGROUND;
 
@@ -578,6 +654,15 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
     for (const egg of eggs) {
       if (egg.collected || egg.waiting) continue;
       const { mesh, floor, phase } = egg;
+      // A dropped egg falls to the ground first, then floats like the rest.
+      if (egg.falling) {
+        egg.fallSpeed += 12 * delta;
+        mesh.position.y -= egg.fallSpeed * delta;
+        mesh.rotation.y += delta * 4;
+        if (mesh.position.y > floor + FLOAT) continue;
+        egg.falling = false;
+        egg.phase = -time * 1.5;
+      }
       // An egg that's just appeared rises up out of the floor first.
       const rise = egg.appeared ? Math.min(1, (time - egg.appeared) / RISE_TIME) : 1;
       mesh.position.y = floor - EGG_HEIGHT * (1 - rise) + (FLOAT + Math.sin(time * 1.5 + phase) * BOB) * rise;
@@ -599,6 +684,7 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
     colliders,
     update,
     // The names of the eggs collected so far, and how many there are.
+    drop,
     found: () => eggs.filter((egg) => egg.collected).map((egg) => egg.name),
     total: eggs.length,
   };
