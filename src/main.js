@@ -13,7 +13,7 @@ import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
 import { createFelonius } from './felonius.js';
-import { createRoro } from './roro.js';
+import { createChookie } from './chookie.js';
 import { combineTargets } from './targets.js';
 import { createGru } from './gru.js';
 import { createCollisionGrid } from './collision.js';
@@ -84,9 +84,9 @@ const medkits = createMedkits(forest.colliders, DUNGEON_PICKUPS.medkits);
 scene.add(medkits.group);
 const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
-const roro = createRoro({ keys, sounds, showMessage });
-scene.add(roro.group);
-const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed, guarded: roro.guarding });
+const chookie = createChookie({ keys, sounds, showMessage });
+scene.add(chookie.group);
+const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed, guarded: chookie.guarding });
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
@@ -97,13 +97,13 @@ scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
 
-// Weapons can hit the monsters and Roro alike.
-const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, roro), collisions, sounds, showMessage });
+// Weapons can hit the monsters and Chookie alike.
+const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, chookie), collisions, sounds, showMessage });
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const gru = createGru({ camera, keys, weapons, temple, felonius, roro, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, roro });
+const gru = createGru({ camera, keys, weapons, temple, felonius, chookie, sounds });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, chookie });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
@@ -177,7 +177,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
   if (!gameOver && player.controls.isLocked) gru.update(camera.position);
-  if (!gameOver && player.controls.isLocked) roro.update(delta, timer.getElapsed(), camera.position, health, collisions);
+  if (!gameOver && player.controls.isLocked) chookie.update(delta, timer.getElapsed(), camera.position, health, collisions);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);

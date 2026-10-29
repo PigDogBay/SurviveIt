@@ -11,7 +11,7 @@ const hex = (colour) => `#${colour.toString(16).padStart(6, '0')}`;
 // in the dungeons). A `waiting` key isn't in the woods until something
 // reveals it (the blue and purple keys appear when the switches in the red
 // and green chambers are pressed). The cage key is bigger, with a pink gem
-// like Roro's feathers, and sits on the stand in the purple chamber.
+// like Chookie's feathers, and sits on the stand in the purple chamber.
 const KEYS = [
   {
     id: 'temple',
@@ -41,7 +41,7 @@ const KEYS = [
     gem: true,
     size: 1.3,
     spot: null,
-    found: "You found the cage key! It opens Felonius's cage. Beware of Roro",
+    found: "You found the cage key! It opens Felonius's cage. Beware of Chookie",
   },
 ];
 

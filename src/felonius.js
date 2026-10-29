@@ -159,7 +159,7 @@ function buildCage(lockColour) {
 }
 
 // The rescue: Felonius is locked in a cage in the woods. The cage key opens
-// it, but not while `guarded()` (Roro is still around), then he follows the
+// it, but not while `guarded()` (Chookie is still around), then he follows the
 // minion. Once he's safe inside the temple, `onSafe` is called.
 export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, guarded }) {
   const group = new THREE.Group();
@@ -235,7 +235,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
       }
       const atDoor = Math.hypot(playerPosition.x - doorSpot.x, playerPosition.z - doorSpot.z) < DOOR_REACH;
       if (atDoor && keys.has('cage') && guarded()) {
-        if (!toldGuarded) showMessage('Roro is guarding the cage! Defeat Roro first');
+        if (!toldGuarded) showMessage('Chookie is guarding the cage! Defeat Chookie first');
         toldGuarded = true;
       } else if (atDoor && keys.has('cage')) {
         keys.use('cage');

@@ -408,7 +408,7 @@ export function createSounds() {
     tone.stop(now + length);
   }
 
-  // Roro's harsh squawk, from three throats at once. Longer for a death cry.
+  // Chookie's harsh squawk, from three throats at once. Longer for a death cry.
   function caw(volume, length = 0.5) {
     const now = start();
     const output = envelope(now, 0.5 * volume, length);

@@ -5,17 +5,17 @@ import { CAGE, CAGE_HEIGHT } from './felonius.js';
 import { heightAt } from './terrain.js';
 
 const HEALTH = 80;
-// Roro wakes when the minion comes this close carrying the cage key.
+// Chookie wakes when the minion comes this close carrying the cage key.
 const WAKE_DISTANCE = 14;
 // Warns the minion off while still asleep, this close.
 const WARN_DISTANCE = 11;
 const RADIUS = 1.1;
-// The part of Roro that shots can hit: a tall circle from its knees up.
+// The part of Chookie that shots can hit: a tall circle from its knees up.
 const HIT_RADIUS = 1.3;
 const HIT_BOTTOM = 0.8;
 const HIT_TOP = 4.4;
 
-// On the ground Roro stalks the minion a little slower than they walk, and
+// On the ground Chookie stalks the minion a little slower than they walk, and
 // pecks with all three heads when close.
 const STALK_SPEED = 3.5;
 const STALK_TIME = 6;
@@ -34,10 +34,10 @@ const DIVE_DAMAGE = 30;
 const STUNNED_TIME = 2.2;
 const FLYING = ['rising', 'circling', 'aiming', 'diving', 'landing'];
 
-// Roro, from Henry's drawing: a huge brown bird with pink legs and necks,
+// Chookie, from Henry's drawing: a huge brown bird with pink legs and necks,
 // blue and pink markings, and three heads with hooked beaks and red eyes.
 // Faces +z with its feet at y = 0.
-function buildRoro() {
+function buildChookie() {
   const brown = new THREE.MeshStandardMaterial({ color: 0x6b4226, emissive: 0x1a0c04, roughness: 0.85 });
   const lightBrown = new THREE.MeshStandardMaterial({ color: 0x9a6a42, emissive: 0x1a0c04, roughness: 0.85 });
   const pink = new THREE.MeshStandardMaterial({ color: 0xe8709e, emissive: 0x2a0a18, roughness: 0.7 });
@@ -46,8 +46,8 @@ function buildRoro() {
   const talon = new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 0.5 });
   const eyes = new THREE.MeshBasicMaterial({ color: 0xff2a1a, fog: false });
 
-  const roro = new THREE.Group();
-  roro.rotation.order = 'YXZ';
+  const chookie = new THREE.Group();
+  chookie.rotation.order = 'YXZ';
   const add = (parent, geometry, material, x, y, z) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -60,7 +60,7 @@ function buildRoro() {
   const legs = [-0.4, 0.4].map((x) => {
     const hip = new THREE.Group();
     hip.position.set(x, 1.8, 0);
-    roro.add(hip);
+    chookie.add(hip);
     add(hip, new THREE.CylinderGeometry(0.1, 0.08, 1.8, 8), pink, 0, -0.9, 0);
     for (const turn of [-0.5, 0, 0.5]) {
       const toe = add(hip, new THREE.ConeGeometry(0.06, 0.45, 6).rotateX(Math.PI / 2), talon, Math.sin(turn) * 0.15, -1.75, 0.2 + Math.cos(turn) * 0.1);
@@ -70,12 +70,12 @@ function buildRoro() {
   });
 
   // A big round body, with a paler belly and stripes of blue and pink.
-  const body = add(roro, new THREE.SphereGeometry(1, 20, 16), brown, 0, 2.6, 0);
+  const body = add(chookie, new THREE.SphereGeometry(1, 20, 16), brown, 0, 2.6, 0);
   body.scale.set(0.95, 0.85, 1.3);
-  const belly = add(roro, new THREE.SphereGeometry(0.8, 16, 12), lightBrown, 0, 2.35, 0.45);
+  const belly = add(chookie, new THREE.SphereGeometry(0.8, 16, 12), lightBrown, 0, 2.35, 0.45);
   belly.scale.set(0.9, 0.8, 0.9);
   [blue, pink, blue].forEach((material, i) => {
-    const stripe = add(roro, new THREE.SphereGeometry(0.9, 16, 8), material, 0, 3.3 - i * 0.05, -0.4 + i * 0.45);
+    const stripe = add(chookie, new THREE.SphereGeometry(0.9, 16, 8), material, 0, 3.3 - i * 0.05, -0.4 + i * 0.45);
     stripe.scale.set(0.9, 0.12, 0.3);
   });
 
@@ -83,7 +83,7 @@ function buildRoro() {
   const wings = [-1, 1].map((side) => {
     const shoulder = new THREE.Group();
     shoulder.position.set(side * 0.8, 3, 0.1);
-    roro.add(shoulder);
+    chookie.add(shoulder);
     add(shoulder, new THREE.BoxGeometry(1.9, 0.1, 1.1), brown, side * 0.95, 0, 0);
     add(shoulder, new THREE.BoxGeometry(0.9, 0.11, 0.25), pink, side * 0.8, 0.01, 0.3);
     for (let i = 0; i < 4; i++) add(shoulder, new THREE.BoxGeometry(0.5, 0.08, 0.28), blue, side * (1.95 + i * 0.05), 0, 0.35 - i * 0.28);
@@ -92,7 +92,7 @@ function buildRoro() {
 
   // A fan of tail feathers.
   for (let i = -2; i <= 2; i++) {
-    const feather = add(roro, new THREE.BoxGeometry(0.28, 0.06, 1.3), i % 2 ? blue : brown, i * 0.22, 2.75, -1.6);
+    const feather = add(chookie, new THREE.BoxGeometry(0.28, 0.06, 1.3), i % 2 ? blue : brown, i * 0.22, 2.75, -1.6);
     feather.rotation.set(-0.4, i * 0.18, 0);
   }
 
@@ -102,7 +102,7 @@ function buildRoro() {
     const neck = new THREE.Group();
     neck.position.set(x, 3.1, 0.95);
     neck.rotation.z = -x * 0.9;
-    roro.add(neck);
+    chookie.add(neck);
     add(neck, new THREE.CylinderGeometry(0.1, 0.15, 1.3, 10), pink, 0, 0.65, 0);
     const head = new THREE.Group();
     head.position.y = 1.35;
@@ -123,7 +123,7 @@ function buildRoro() {
     return neck;
   });
 
-  return { roro, legs, wings, necks, eyes, materials: [brown, lightBrown, pink, blue, beak, talon] };
+  return { chookie, legs, wings, necks, eyes, materials: [brown, lightBrown, pink, blue, beak, talon] };
 }
 
 // "Zzz" floating up from the sleeping bird.
@@ -144,39 +144,39 @@ function snoreSprite() {
   return sprite;
 }
 
-// Roro, the final boss. It sleeps on Felonius's cage until the minion comes
+// Chookie, the final boss. It sleeps on Felonius's cage until the minion comes
 // near with the cage key (or attacks it), then fights. The cage can't be
-// opened until Roro is beaten.
-export function createRoro({ keys, sounds, showMessage }) {
+// opened until Chookie is beaten.
+export function createChookie({ keys, sounds, showMessage }) {
   const group = new THREE.Group();
-  const { roro, legs, wings, necks, eyes, materials } = buildRoro();
-  group.add(roro);
-  const position = roro.position;
+  const { chookie, legs, wings, necks, eyes, materials } = buildChookie();
+  group.add(chookie);
+  const position = chookie.position;
   // Asleep, it sits on the cage's dome with its legs tucked under it.
   const perchY = heightAt(CAGE.x, CAGE.z) + CAGE_HEIGHT - 1.2;
   position.set(CAGE.x, perchY, CAGE.z);
-  roro.rotation.y = Math.atan2(-CAGE.x, -CAGE.z);
+  chookie.rotation.y = Math.atan2(-CAGE.x, -CAGE.z);
   const zzz = snoreSprite();
   group.add(zzz);
 
-  // Frozen, Roro turns to ice: every part swaps to the ice material.
+  // Frozen, Chookie turns to ice: every part swaps to the ice material.
   const ice = new THREE.MeshStandardMaterial({ color: 0xa8dcff, emissive: 0x1a4a6a, roughness: 0.15 });
-  roro.traverse((part) => {
+  chookie.traverse((part) => {
     if (materials.includes(part.material)) part.userData.material = part.material;
   });
   function setIce(on) {
-    roro.traverse((part) => {
+    chookie.traverse((part) => {
       if (part.userData.material) part.material = on ? ice : part.userData.material;
     });
   }
-  const setEyes = (open) => roro.traverse((part) => part.material === eyes && (part.visible = open));
+  const setEyes = (open) => chookie.traverse((part) => part.material === eyes && (part.visible = open));
   setEyes(false);
 
   const bossBar = document.getElementById('boss');
   const bossFill = bossBar.querySelector('.fill');
 
   // The one target the weapons see. `monster` is what they read the position from.
-  const self = { monster: roro };
+  const self = { monster: chookie };
   let state = 'asleep';
   let health = HEALTH;
   let timer = 0;
@@ -207,15 +207,15 @@ export function createRoro({ keys, sounds, showMessage }) {
     bossBar.classList.remove('hidden');
     caw(1, 0.9);
     sounds.flap();
-    showMessage('Roro wakes up! Defeat Roro to free Felonius!');
+    showMessage('Chookie wakes up! Defeat Chookie to free Felonius!');
     // Stands up off the cage before taking off.
     position.y = heightAt(CAGE.x, CAGE.z) + CAGE_HEIGHT + 0.3;
   }
 
   function face(x, z, delta, rate = 6) {
     const heading = Math.atan2(x - position.x, z - position.z);
-    const turn = Math.atan2(Math.sin(heading - roro.rotation.y), Math.cos(heading - roro.rotation.y));
-    roro.rotation.y += turn * Math.min(1, delta * rate);
+    const turn = Math.atan2(Math.sin(heading - chookie.rotation.y), Math.cos(heading - chookie.rotation.y));
+    chookie.rotation.y += turn * Math.min(1, delta * rate);
   }
 
   // Flies straight towards a point, facing the way it's going.
@@ -271,7 +271,7 @@ export function createRoro({ keys, sounds, showMessage }) {
         wake();
       } else if (toPlayer < WARN_DISTANCE && !warned) {
         warned = true;
-        showMessage('Shh! Roro is asleep on the cage. Come back with the cage key, ready to fight!');
+        showMessage('Shh! Chookie is asleep on the cage. Come back with the cage key, ready to fight!');
       } else if (toPlayer > WARN_DISTANCE + 4) {
         warned = false;
       }
@@ -282,10 +282,10 @@ export function createRoro({ keys, sounds, showMessage }) {
     if (state === 'dying') {
       timer += delta;
       const fall = Math.min(1, timer / 0.8);
-      roro.rotation.x = -(Math.PI / 2) * fall * fall;
+      chookie.rotation.x = -(Math.PI / 2) * fall * fall;
       position.y = Math.max(ground - (timer > 2.5 ? (timer - 2.5) * 0.8 : 0), position.y - 12 * delta);
       if (timer > 6) {
-        group.remove(roro);
+        group.remove(chookie);
         state = 'gone';
       }
       return;
@@ -397,7 +397,7 @@ export function createRoro({ keys, sounds, showMessage }) {
     pose(time, delta);
   }
 
-  // Wings, legs and heads for whatever Roro is doing.
+  // Wings, legs and heads for whatever Chookie is doing.
   function pose(time, delta) {
     const flying = FLYING.includes(state);
     const ease = Math.min(1, delta * 10);
@@ -450,13 +450,13 @@ export function createRoro({ keys, sounds, showMessage }) {
       setEyes(false);
       caw(1, 1.6);
       bossBar.classList.add('hidden');
-      showMessage('You defeated Roro! Now open the cage and free Felonius');
+      showMessage('You defeated Chookie! Now open the cage and free Felonius');
     }
-    // Roro's own message, not "Monster defeated!".
+    // Chookie's own message, not "Monster defeated!".
     return false;
   }
 
-  // Roro is big, so it counts as near if any of it is within reach.
+  // Chookie is big, so it counts as near if any of it is within reach.
   function near(point, radius) {
     if (!alive()) return [];
     const across = Math.hypot(point.x - position.x, point.z - position.z) < radius + HIT_RADIUS;
@@ -487,10 +487,10 @@ export function createRoro({ keys, sounds, showMessage }) {
     near,
     freeze,
     blind: blindIt,
-    // Bangs don't wake Roro: it sleeps deeply until the minion brings the key.
+    // Bangs don't wake Chookie: it sleeps deeply until the minion brings the key.
     alert() {},
     owns: (target) => target === self,
-    // Felonius's cage stays shut while Roro is still around.
+    // Felonius's cage stays shut while Chookie is still around.
     guarding: () => alive(),
     markers: () => (alive() ? [{ x: position.x, z: position.z }] : []),
     awake: () => alive() && state !== 'asleep',

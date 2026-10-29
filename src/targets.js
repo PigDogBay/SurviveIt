@@ -1,4 +1,4 @@
-// Puts several kinds of enemy (the monsters, Roro) behind one set of calls,
+// Puts several kinds of enemy (the monsters, Chookie) behind one set of calls,
 // so every weapon can hit any of them. Each kind must say which targets it
 // `owns` and offer raycast, hurt, near, alert, freeze and blind.
 export function combineTargets(...kinds) {

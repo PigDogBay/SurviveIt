@@ -8,7 +8,7 @@ const ARRIVED = 3;
 // Gru gives the mission and tells the minion what to do next, in a speech
 // bubble with an arrow pointing the way. What he says comes from how far the
 // minion has got, so it's always the next step, whatever order things happen.
-export function createGru({ camera, keys, weapons, temple, felonius, roro, sounds }) {
+export function createGru({ camera, keys, weapons, temple, felonius, chookie, sounds }) {
   const panel = document.getElementById('gru');
   const text = document.getElementById('gru-text');
   const arrow = document.getElementById('gru-arrow');
@@ -21,9 +21,9 @@ export function createGru({ camera, keys, weapons, temple, felonius, roro, sound
     if (freed === 'safe') return null;
     if (freed !== 'caged') return ['Bring Felonius back to the temple, quick! He will follow you.', templeHall];
     if (keys.found('cage')) {
-      if (roro.awake()) return ['Defeat Roro! Hit it while it is dizzy after a dive.', roro.where()];
-      if (roro.guarding()) return ['Take the cage key to Felonius, near where you started. Watch out for Roro!', felonius.door];
-      return ['You beat Roro! Now open the cage and free my boy!', felonius.door];
+      if (chookie.awake()) return ['Defeat Chookie! Hit it while it is dizzy after a dive.', chookie.where()];
+      if (chookie.guarding()) return ['Take the cage key to Felonius, near where you started. Watch out for Chookie!', felonius.door];
+      return ['You beat Chookie! Now open the cage and free my boy!', felonius.door];
     }
     if (temple.doorOpen('purple')) return ['The cage key is in the purple chamber. Grab it!', keys.where('cage')];
     if (keys.found('purple')) return ['Open the purple chamber in the temple with the purple key.', temple.doorAt('purple')];
@@ -37,7 +37,7 @@ export function createGru({ camera, keys, weapons, temple, felonius, roro, sound
     if (keys.found('red')) return ['Open the red chamber in the temple with the red key.', temple.doorAt('red')];
     if (temple.doorOpen('temple')) return ['Go down the stairs in the temple. The red key is hidden in the dungeon.', keys.where('red')];
     if (keys.found('temple')) return ['Take the key to the temple and unlock the door.', temple.doorAt('temple')];
-    if (!weapons.hasAny()) return ['Minion! Roro has locked my son Felonius in a cage. Grab that blunderbuss!', weapons.where('Blunderbuss')];
+    if (!weapons.hasAny()) return ['Minion! Chookie has locked my son Felonius in a cage. Grab that blunderbuss!', weapons.where('Blunderbuss')];
     return ['Find the temple key. It is somewhere in the woods.', keys.where('temple')];
   }
 
