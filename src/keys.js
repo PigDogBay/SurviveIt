@@ -10,7 +10,8 @@ const hex = (colour) => `#${colour.toString(16).padStart(6, '0')}`;
 // `spot` is put in place by whatever hides it (the red and green keys are
 // in the dungeons). A `waiting` key isn't in the woods until something
 // reveals it (the blue and purple keys appear when the switches in the red
-// and green chambers are pressed). The cage key goes here later.
+// and green chambers are pressed). The cage key is bigger, with a pink gem
+// like Roro's feathers, and sits on the stand in the purple chamber.
 const KEYS = [
   {
     id: 'temple',
@@ -33,6 +34,15 @@ const KEYS = [
     spot,
     found: `You found the ${colourName.toLowerCase()} chamber key! It opens a hidden chamber in the temple`,
   })),
+  {
+    id: 'cage',
+    name: 'Cage key',
+    colour: 0xff5fc8,
+    gem: true,
+    size: 1.3,
+    spot: null,
+    found: "You found the cage key! It opens Felonius's cage. Beware of Roro",
+  },
 ];
 
 // A key's name and colour, by its id.
@@ -105,12 +115,13 @@ export function createKeys({ colliders, sounds, showMessage }) {
   for (const key of KEYS) {
     const [x, z] = key.spot ? clearSpot(...key.spot, colliders) : [0, 0];
     key.model = buildKey(key.gem && key.colour);
+    key.model.scale.setScalar(key.size ?? 1);
     key.model.traverse((part) => (part.castShadow = true));
     // Ignores fog so a key's glow can be spotted between the trees from afar.
     const glow = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: glowMap, color: key.colour, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }),
     );
-    glow.scale.set(2, 2, 1);
+    glow.scale.setScalar(2 * (key.size ?? 1));
     key.pickup = new THREE.Group();
     key.pickup.add(key.model, glow);
     key.floor = heightAt(x, z);

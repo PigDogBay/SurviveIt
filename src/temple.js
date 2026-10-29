@@ -21,12 +21,13 @@ const DOOR_OPEN_TIME = 2.5;
 // `side` is -1 for the left wall and 1 for the right; `z` is where along it.
 // A chamber that `reveals` a key has a switch on its back wall, in that key's
 // colour; touching it makes the key appear in the woods. The blue chamber
-// has the stairs down to the second dungeon instead of a gem.
+// has the stairs down to the second dungeon instead of a gem, and a chamber
+// that `holds` a key has that key on its stand instead of a gem.
 const CHAMBERS = [
   { key: 'red', side: -1, z: 4, reveals: 'blue' },
   { key: 'blue', side: -1, z: -4, stairs: true },
   { key: 'green', side: 1, z: 4, reveals: 'purple' },
-  { key: 'purple', side: 1, z: -4 },
+  { key: 'purple', side: 1, z: -4, holds: 'cage' },
 ];
 const CHAMBER_WIDTH = 6;
 const CHAMBER_DEPTH = 7;
@@ -191,8 +192,14 @@ export function createTemple({ keys, sounds, showMessage }) {
     if (!chamber.stairs) {
       add(stoneBox(0.8, 1, 0.8, stone), floorX, 0.5, z);
       post(floorX, z, 0.55);
-      const gem = add(new THREE.Mesh(gemGeometry, new THREE.MeshBasicMaterial({ color: colour })), floorX, 1.45, z);
-      gems.push(gem);
+      if (chamber.holds) {
+        // The key floats just above the stand, where a gem would be.
+        const spot = toWorld(floorX, z);
+        keys.place(chamber.holds, { x: spot.x, y: TEMPLE_FLOOR + 0.75, z: spot.z });
+      } else {
+        const gem = add(new THREE.Mesh(gemGeometry, new THREE.MeshBasicMaterial({ color: colour })), floorX, 1.45, z);
+        gems.push(gem);
+      }
     }
 
     if (chamber.reveals) wallSwitch(side * (halfWidth + CHAMBER_WIDTH - WALL), z, -side, chamber.reveals);
