@@ -586,6 +586,22 @@ export function createSounds() {
     }
   }
 
+  // A pot bubbling: a few quick plops at different pitches.
+  function bubble() {
+    const now = start();
+    for (let i = 0; i < 3; i++) {
+      const at = now + Math.random() * 0.25;
+      const plop = audio.createOscillator();
+      plop.type = 'sine';
+      const pitch = 300 + Math.random() * 300;
+      plop.frequency.setValueAtTime(pitch, at);
+      plop.frequency.exponentialRampToValueAtTime(pitch * 2, at + 0.06);
+      plop.connect(envelope(at, 0.15, 0.08));
+      plop.start(at);
+      plop.stop(at + 0.1);
+    }
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -606,5 +622,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow, ufo };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow, ufo, bubble };
 }

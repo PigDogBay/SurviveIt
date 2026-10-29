@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import { buildCampfire, buildPot, buildRat, drawRatatouille, POT_TOP } from './camp.js';
 import { buildSkeleton, buildSkull, drawDino, SKULL_SPOT } from './dino.js';
 import { isUnderground, onDungeonFloor, UNDERGROUND } from './dungeon.js';
-import { DINO_CLEARING } from './forest.js';
+import { CAGE } from './felonius.js';
+import { CAMP_CLEARING, DINO_CLEARING } from './forest.js';
+import { fireMaterial } from './monsters.js';
 import { heightAt, TEMPLE } from './terrain.js';
 
 const EGG_HEIGHT = 0.8;
@@ -380,11 +383,18 @@ const EGGS = [
   // Laid by the T-Rex skeleton once its skull is put back. Speckled like a
   // real egg, with a cartoon dinosaur on the front.
   { name: 'Dino egg', dropped: true, appears: true, colour: '#f3e8c8', band: '#8a5a2a', draw: drawDinoEgg },
+  // Rises out of the cooking pot once the dead rat has been cooked in it.
+  { name: 'Ratatouille egg', dropped: true, appears: true, colour: '#f4dc8a', band: '#c83a2a', draw: drawRatatouille },
 ];
 
 // The T-Rex skeleton stands in a clearing near the east edge of the map; its
 // skull lies on the ground far away near the west edge.
 const SKULL_LIES = { x: -142, z: -20 };
+// The dead rat lies near Felonius's cage; the campfire and pot are in a
+// clearing towards the north. Cooking takes a few seconds.
+const RAT_LIES = { x: CAGE.x + 3, z: CAGE.z + 2.5 };
+const POT_REACH = 2.2;
+const COOK_TIME = 4;
 // How close to the skeleton's neck the minion must bring the skull.
 const SKELETON_REACH = 5;
 
@@ -637,23 +647,54 @@ export function createEasterEggs({ onCollect, sounds, showMessage, trees = [] })
   }
   const neck = skeleton.localToWorld(SKULL_SPOT.clone());
 
+  // Moves a spot out of any tree or rock, spiralling outwards until it's clear.
+  function clearOf({ x, z }) {
+    for (let step = 0; step < 80; step++) {
+      const px = x + Math.cos(step * 2.4) * step * 0.3;
+      const pz = z + Math.sin(step * 2.4) * step * 0.3;
+      if (trees.every((c) => Math.hypot(px - c.x, pz - c.z) > c.radius + 1.5)) return [px, pz];
+    }
+    return [x, z];
+  }
+
   // The skull, lying on its side out in the woods, nudged clear of trees.
   const skull = buildSkull();
-  let [skullX, skullZ] = [SKULL_LIES.x, SKULL_LIES.z];
-  for (let step = 0; step < 80; step++) {
-    const x = SKULL_LIES.x + Math.cos(step * 2.4) * step * 0.3;
-    const z = SKULL_LIES.z + Math.sin(step * 2.4) * step * 0.3;
-    if (trees.every((c) => Math.hypot(x - c.x, z - c.z) > c.radius + 1.5)) {
-      [skullX, skullZ] = [x, z];
-      break;
-    }
-  }
+  const [skullX, skullZ] = clearOf(SKULL_LIES);
   const skullFloor = heightAt(skullX, skullZ);
   skull.position.set(skullX, skullFloor + 0.3, skullZ);
   skull.rotation.set(Math.PI / 2 - 0.2, 0.7, 0.1);
   group.add(skull);
   let skullState = 'lying';
   let toldAboutSkeleton = false;
+
+  // The campfire with the pot hanging over it, steaming.
+  const campFloor = heightAt(CAMP_CLEARING.x, CAMP_CLEARING.z);
+  const { fire, flames } = buildCampfire();
+  const { pot, stew } = buildPot();
+  for (const part of [fire, pot]) {
+    part.position.set(CAMP_CLEARING.x, campFloor, CAMP_CLEARING.z);
+    group.add(part);
+  }
+  colliders.push({ x: CAMP_CLEARING.x, z: CAMP_CLEARING.z, radius: 0.7, above: campFloor - 1.5 });
+  const steamMaterial = new THREE.SpriteMaterial({ map: fireMaterial.map, color: 0xd8d8e0, depthWrite: false, transparent: true, opacity: 0.4 });
+  const steam = [0, 1, 2].map((i) => {
+    const puff = new THREE.Sprite(steamMaterial);
+    puff.userData.phase = i / 3;
+    group.add(puff);
+    return puff;
+  });
+
+  // The dead rat, near the cage, nudged clear of trees.
+  const rat = buildRat();
+  const [ratX, ratZ] = clearOf(RAT_LIES);
+  const ratFloor = heightAt(ratX, ratZ);
+  rat.position.set(ratX, ratFloor + 0.12, ratZ);
+  rat.rotation.y = 0.8;
+  group.add(rat);
+  let ratState = 'lying';
+  let cookStarted = 0;
+  let lastBubble = 0;
+  let toldAboutPot = false;
 
   // What the minion is carrying, shown under the keys.
   const items = document.getElementById('items');
@@ -722,6 +763,58 @@ export function createEasterEggs({ onCollect, sounds, showMessage, trees = [] })
       } else if (atTV && !toldAboutTV) {
         toldAboutTV = true;
         showMessage('An old TV, showing static. It needs something to play...');
+      }
+    }
+
+    // The campfire flickers, and the pot steams: much more while it cooks.
+    const cooking = ratState === 'cooking';
+    flames.forEach((flame, i) => {
+      const flicker = 0.8 + Math.sin(time * 11 + i * 2) * 0.15 + Math.random() * 0.1;
+      flame.scale.set(0.7 * flame.userData.size * flicker, 1.1 * flame.userData.size * flicker, 1);
+    });
+    steam.forEach((puff) => {
+      const rise = (time * (cooking ? 0.9 : 0.35) + puff.userData.phase) % 1;
+      puff.position.set(CAMP_CLEARING.x + Math.sin(rise * 6) * 0.1, campFloor + POT_TOP + rise * (cooking ? 1.6 : 1), CAMP_CLEARING.z);
+      puff.scale.setScalar((0.4 + rise * 0.9) * (cooking ? 1.5 : 1));
+    });
+    steamMaterial.opacity = cooking ? 0.6 : 0.3;
+    stew.position.y = POT_TOP - 0.1 + (cooking ? Math.sin(time * 25) * 0.015 : 0);
+
+    // The rat: pick it up, then put it in the pot to cook.
+    if (ratState === 'lying') {
+      const near = Math.abs(feet - ratFloor) < 2 && Math.hypot(playerPosition.x - ratX, playerPosition.z - ratZ) < 1.4;
+      if (near) {
+        ratState = 'carried';
+        group.remove(rat);
+        carrying.add('🐀 Dead rat');
+        renderItems();
+        sounds.chime();
+        showMessage('Eww, a dead rat! Maybe someone could cook it...');
+      }
+    }
+    const atPot = !underground && Math.hypot(playerPosition.x - CAMP_CLEARING.x, playerPosition.z - CAMP_CLEARING.z) < POT_REACH;
+    if (atPot && ratState === 'carried') {
+      ratState = 'cooking';
+      cookStarted = time;
+      carrying.delete('🐀 Dead rat');
+      renderItems();
+      sounds.pop();
+      showMessage('Hmmm tasty rat!');
+    } else if (atPot && ratState === 'lying' && !toldAboutPot) {
+      toldAboutPot = true;
+      showMessage('A cooking pot over a campfire. It needs something tasty in it...');
+    }
+    if (cooking) {
+      if (time - lastBubble > 0.35) {
+        sounds.bubble();
+        lastBubble = time;
+      }
+      if (time - cookStarted > COOK_TIME) {
+        ratState = 'cooked';
+        sounds.chime();
+        showMessage("The rat is cooked... and it's made the Ratatouille egg!");
+        // The egg rises up out of the pot and floats above it.
+        bringOut('Ratatouille egg', CAMP_CLEARING.x, CAMP_CLEARING.z, campFloor + POT_TOP - 0.2, time, playerPosition);
       }
     }
 
