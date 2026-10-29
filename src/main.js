@@ -65,7 +65,7 @@ const fireflies = createFireflies();
 scene.add(fireflies.points);
 
 const sounds = createSounds();
-const keys = createKeys({ sounds, showMessage });
+const keys = createKeys({ colliders: forest.colliders, sounds, showMessage });
 scene.add(keys.group);
 const temple = createTemple({ keys, sounds, showMessage });
 scene.add(temple.group);

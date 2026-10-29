@@ -80,21 +80,29 @@ export function createMinimap({ colliders, temple, medkits, weapons, keys, monst
   }
 
   function drawTemple() {
-    const { x, z, angle, width, depth } = temple.outline;
+    const { x, z, angle, rooms, doors } = temple.outline;
     ctx.save();
     ctx.translate(mapX(x), mapY(z));
     // The map's y axis is the world's z, so the turn runs the other way.
     ctx.rotate(-angle);
-    const w = width * scale;
-    const d = depth * scale;
     ctx.fillStyle = '#c9bd94';
     ctx.strokeStyle = '#2a2418';
     ctx.lineWidth = 1;
-    ctx.fillRect(-w / 2, -d / 2, w, d);
-    ctx.strokeRect(-w / 2, -d / 2, w, d);
-    // The door, on the front (+z) side.
-    ctx.fillStyle = '#ff8a3a';
-    ctx.fillRect(-1.5, d / 2 - 1, 3, 2);
+    for (const room of rooms) {
+      const w = room.width * scale;
+      const d = room.depth * scale;
+      ctx.strokeRect(room.x * scale - w / 2, room.z * scale - d / 2, w, d);
+    }
+    for (const room of rooms) {
+      const w = room.width * scale;
+      const d = room.depth * scale;
+      ctx.fillRect(room.x * scale - w / 2, room.z * scale - d / 2, w, d);
+    }
+    // Each door in the colour of the key that opens it.
+    for (const door of doors) {
+      ctx.fillStyle = door.colour;
+      ctx.fillRect(door.x * scale - 1.25, door.z * scale - 1.25, 2.5, 2.5);
+    }
     ctx.restore();
   }
 
@@ -135,7 +143,7 @@ export function createMinimap({ colliders, temple, medkits, weapons, keys, monst
     drawTemple();
     for (const { x, z } of medkits.markers()) drawMedkit(x, z);
     for (const { x, z, colour } of weapons.markers()) dot(x, z, 3.5, colour, '#000');
-    for (const { x, z } of keys.markers()) dot(x, z, 3.5, '#ffd84a', '#5a3c08');
+    for (const { x, z, colour } of keys.markers()) dot(x, z, 3.5, colour, '#000');
     for (const { x, z } of monsters.markers()) dot(x, z, 2.2, '#ff3a2a');
     ctx.drawImage(fog, 0, 0, SIZE, SIZE);
     drawPlayer(position, facing);
