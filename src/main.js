@@ -5,6 +5,7 @@ import { createPlayer } from './player.js';
 import { createHealth } from './health.js';
 import { createMedkits } from './medkits.js';
 import { createMonsters } from './monsters.js';
+import { createWeapons } from './weapons.js';
 import { createCollisionGrid } from './collision.js';
 
 const NIGHT = 0x0b1418;
@@ -45,9 +46,10 @@ const moon = new THREE.Mesh(
 );
 scene.add(moon);
 
-// The minion's torch. Press F to switch it on and off.
+// The minion's torch, held in the left hand, away from the weapon in the
+// right. Press F to switch it on and off.
 const torch = new THREE.SpotLight(0xfff1d0, 30, 35, Math.PI / 7, 0.45, 1.6);
-torch.position.set(0.25, -0.2, 0);
+torch.position.set(-0.25, -0.2, 0);
 torch.target.position.set(0, 0, -1);
 camera.add(torch, torch.target);
 scene.add(camera);
@@ -66,6 +68,9 @@ const monsters = createMonsters(collisions);
 scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
+
+const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, showMessage });
+scene.add(weapons.group);
 
 const menu = document.getElementById('menu');
 const gameover = document.getElementById('gameover');
@@ -117,6 +122,7 @@ renderer.setAnimationLoop((timestamp) => {
   player.update(delta);
   fireflies.update(timer.getElapsed());
   if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
+  if (!dead) weapons.update(delta, timer.getElapsed(), camera.position);
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
 

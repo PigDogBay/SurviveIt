@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { createRandom, range } from './random.js';
 import { heightAt, WORLD_RADIUS } from './terrain.js';
+import { rayCircle } from './collision.js';
 
 const COUNT = 70;
 // Monsters never start this close to the player's starting clearing.
@@ -16,10 +17,23 @@ const ATTACK_DISTANCE = 1.6;
 const ATTACK_DAMAGE = 25;
 const ATTACK_COOLDOWN = 1.2;
 
+// Each blunderbuss pellet does 1 damage, so a close-up blast kills outright.
+const HEALTH = 6;
+const HIT_RADIUS = 0.6;
+const HIT_HEIGHT = 2.3;
+// Getting shot knocks a monster back and stops it for a moment.
+const KNOCKBACK = 0.15;
+const STUN_TIME = 0.35;
+const DEATH_TIME = 1.8;
+// A loud noise makes monsters chase for this long, however far away the player is.
+const ALERT_TIME = 10;
+
 const skin = new THREE.MeshStandardMaterial({ color: 0x1c1a1f, roughness: 0.85 });
 // Eyes ignore fog and lighting, so a pair of red eyes is the first thing you
 // see in the dark.
 const eyes = new THREE.MeshBasicMaterial({ color: 0xff2a1a, fog: false });
+// Frozen monsters swap their skin for ice.
+const ice = new THREE.MeshStandardMaterial({ color: 0xa8dcff, emissive: 0x1a4a6a, roughness: 0.15 });
 
 const bodyGeometry = new THREE.CapsuleGeometry(0.45, 0.8, 4, 10);
 const headGeometry = new THREE.SphereGeometry(0.38, 12, 10);
@@ -46,6 +60,8 @@ function limb(x, y, withClaws) {
 // A tall, hunched shadow creature with long clawed arms.
 function buildMonster() {
   const monster = new THREE.Group();
+  // Turn first, then tip, so a dying monster falls over backwards.
+  monster.rotation.order = 'YXZ';
   const body = new THREE.Group();
   body.position.y = 1.15;
   body.rotation.x = 0.35; // hunched forward
@@ -97,6 +113,12 @@ export function createMonsters(collisions) {
       heading: range(random, 0, Math.PI * 2),
       wanderTimer: 0,
       attackTimer: 0,
+      health: HEALTH,
+      stun: 0,
+      frozen: 0,
+      alerted: 0,
+      dead: false,
+      deathTimer: 0,
       stride: range(random, 0, 10),
     });
   }
@@ -104,12 +126,33 @@ export function createMonsters(collisions) {
   const toPlayer = new THREE.Vector3();
 
   function update(delta, playerPosition, health) {
-    for (const m of monsters) {
+    for (let i = monsters.length - 1; i >= 0; i--) {
+      const m = monsters[i];
       const position = m.monster.position;
+      if (m.dead) {
+        // Topple over, then sink into the ground and disappear.
+        m.deathTimer += delta;
+        const fall = Math.min(1, m.deathTimer / 0.5);
+        m.monster.rotation.x = -(Math.PI / 2) * fall * fall;
+        if (m.deathTimer > 0.9) position.y -= delta * 0.8;
+        if (m.deathTimer > DEATH_TIME) {
+          group.remove(m.monster);
+          monsters.splice(i, 1);
+        }
+        continue;
+      }
+
+      if (m.frozen > 0) {
+        m.frozen -= delta;
+        if (m.frozen <= 0) setSkin(m, skin);
+        continue;
+      }
+
       toPlayer.set(playerPosition.x - position.x, 0, playerPosition.z - position.z);
       const distance = toPlayer.length();
 
-      if (distance < NOTICE_DISTANCE) m.chasing = true;
+      m.alerted -= delta;
+      if (distance < NOTICE_DISTANCE || m.alerted > 0) m.chasing = true;
       else if (distance > GIVE_UP_DISTANCE) m.chasing = false;
 
       let speed = 0;
@@ -124,6 +167,10 @@ export function createMonsters(collisions) {
           m.wanderTimer = range(random, 2, 5);
         }
         speed = WANDER_SPEED;
+      }
+      if (m.stun > 0) {
+        m.stun -= delta;
+        speed = 0;
       }
 
       position.x += Math.sin(m.heading) * speed * delta;
@@ -142,7 +189,7 @@ export function createMonsters(collisions) {
       m.rightLeg.rotation.x = -swing;
 
       m.attackTimer -= delta;
-      if (m.chasing && distance < ATTACK_DISTANCE) {
+      if (m.chasing && m.stun <= 0 && distance < ATTACK_DISTANCE) {
         if (m.attackTimer <= 0) {
           health.damage(ATTACK_DAMAGE);
           m.attackTimer = ATTACK_COOLDOWN;
@@ -155,5 +202,66 @@ export function createMonsters(collisions) {
     }
   }
 
-  return { group, update };
+  function setSkin(m, material) {
+    m.monster.traverse((part) => {
+      if (part.material === skin || part.material === ice) part.material = material;
+    });
+  }
+
+  // Living monsters within `radius` of a point, seen from above.
+  function near(point, radius) {
+    return monsters.filter(
+      (m) => !m.dead && Math.hypot(m.monster.position.x - point.x, m.monster.position.z - point.z) < radius,
+    );
+  }
+
+  // A loud noise: every monster within `radius` comes after the player.
+  function alert(point, radius) {
+    for (const m of near(point, radius)) {
+      m.chasing = true;
+      m.alerted = ALERT_TIME;
+    }
+  }
+
+  // Turns a monster to ice: it can't move or attack until it thaws.
+  function freeze(target, seconds) {
+    if (target.dead) return;
+    target.frozen = seconds;
+    setSkin(target, ice);
+  }
+
+  // The nearest living monster a ray (normalised direction) hits, if any.
+  function raycast(origin, direction, maxDistance) {
+    let nearest = null;
+    let nearestDistance = maxDistance;
+    for (const m of monsters) {
+      if (m.dead) continue;
+      const position = m.monster.position;
+      const distance = rayCircle(origin, direction, position.x, position.z, HIT_RADIUS);
+      if (distance >= nearestDistance) continue;
+      const y = origin.y + direction.y * distance;
+      if (y < position.y || y > position.y + HIT_HEIGHT) continue;
+      nearest = m;
+      nearestDistance = distance;
+    }
+    return nearest && { target: nearest, distance: nearestDistance };
+  }
+
+  // Hurts a monster shot from `direction`. Returns true if that killed it.
+  function hurt(target, amount, direction) {
+    if (target.dead) return false;
+    target.health -= amount;
+    target.chasing = true;
+    target.stun = STUN_TIME;
+    const position = target.monster.position;
+    position.x += direction.x * KNOCKBACK * amount;
+    position.z += direction.z * KNOCKBACK * amount;
+    collisions.pushOut(position, RADIUS);
+    position.y = heightAt(position.x, position.z);
+    if (target.health > 0) return false;
+    target.dead = true;
+    return true;
+  }
+
+  return { group, update, raycast, hurt, near, alert, freeze };
 }

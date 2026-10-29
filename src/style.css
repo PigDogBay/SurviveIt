@@ -22,6 +22,13 @@ canvas {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.7);
   pointer-events: none;
+  transition: transform 0.1s, background 0.1s;
+}
+
+/* Turns red for a moment when a shot hits a monster. */
+#crosshair.hit {
+  background: #ff3a2a;
+  transform: scale(2.2);
 }
 
 #health {
@@ -63,6 +70,32 @@ canvas {
   to {
     transform: scale(1.35);
   }
+}
+
+#weapons {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  font-weight: 700;
+  text-shadow: 0 1px 3px #000;
+}
+
+#weapons .slot {
+  padding: 0.35em 0.8em;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0.6;
+}
+
+#weapons .slot.active {
+  border-color: #ffd84a;
+  opacity: 1;
 }
 
 #flash {
