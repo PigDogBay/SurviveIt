@@ -336,6 +336,28 @@ export function createSounds() {
     thump.stop(now + 0.25);
   }
 
+  // Breaking glass: a sharp crash, then bits of ice tinkling down.
+  function shatter() {
+    const now = start();
+    const crash = audio.createBiquadFilter();
+    crash.type = 'highpass';
+    crash.frequency.value = 2500;
+    noiseSource(now, 0.35).connect(crash).connect(envelope(now, 0.8, 0.35));
+    const crunch = audio.createBiquadFilter();
+    crunch.type = 'bandpass';
+    crunch.frequency.value = 900;
+    noiseSource(now, 0.15).connect(crunch).connect(envelope(now, 0.6, 0.15));
+    for (let i = 0; i < 10; i++) {
+      const delay = 0.05 + Math.random() * 0.6;
+      const tinkle = audio.createOscillator();
+      tinkle.type = 'sine';
+      tinkle.frequency.value = 2500 + Math.random() * 3500;
+      tinkle.connect(envelope(now + delay, 0.12, 0.12));
+      tinkle.start(now + delay);
+      tinkle.stop(now + delay + 0.15);
+    }
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -356,5 +378,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter };
 }

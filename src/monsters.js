@@ -29,6 +29,10 @@ const STUN_TIME = 0.35;
 const DEATH_TIME = 1.8;
 // A loud noise makes monsters chase for this long, however far away the player is.
 const ALERT_TIME = 10;
+// Walking into a frozen monster shatters it, this close.
+const SHATTER_DISTANCE = 1.1;
+const SHARDS = 26;
+const SHARD_TIME = 1.6;
 // A chasing monster growls now and then once it's this close.
 const GROWL_DISTANCE = 8;
 const GROWL_EVERY = [1.5, 3.5];
@@ -103,7 +107,7 @@ function buildMonster() {
   return { monster, leftArm, rightArm, leftLeg, rightLeg };
 }
 
-export function createMonsters(collisions, sounds) {
+export function createMonsters(collisions, sounds, showMessage) {
   const random = createRandom(666);
   const group = new THREE.Group();
   const monsters = [];
@@ -142,12 +146,67 @@ export function createMonsters(collisions, sounds) {
     addMonster(Math.cos(angle) * distance, Math.sin(angle) * distance, range(random, 0, Math.PI * 2), range(random, 0, 10));
   }
 
+  // Bits of ice flying out from a shattered monster.
+  const shardGeometry = new THREE.TetrahedronGeometry(0.16);
+  const shards = [];
+  function shatter(m, index) {
+    const position = m.monster.position;
+    for (let i = 0; i < SHARDS; i++) {
+      const shard = new THREE.Mesh(shardGeometry, ice);
+      shard.position.set(position.x + (Math.random() - 0.5) * 0.8, position.y + 0.3 + Math.random() * 1.9, position.z + (Math.random() - 0.5) * 0.8);
+      shard.scale.setScalar(0.5 + Math.random());
+      const out = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      shard.userData = {
+        velocity: new THREE.Vector3(Math.cos(out) * speed, 2 + Math.random() * 4, Math.sin(out) * speed),
+        spin: new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10),
+        size: shard.scale.x,
+        age: 0,
+      };
+      group.add(shard);
+      shards.push(shard);
+    }
+    group.remove(m.monster);
+    monsters.splice(index, 1);
+    sounds.shatter();
+    showMessage('Monster shattered!');
+  }
+
+  function updateShards(delta) {
+    for (let i = shards.length - 1; i >= 0; i--) {
+      const shard = shards[i];
+      const data = shard.userData;
+      data.age += delta;
+      if (data.age > SHARD_TIME) {
+        group.remove(shard);
+        shards.splice(i, 1);
+        continue;
+      }
+      data.velocity.y -= 14 * delta;
+      shard.position.addScaledVector(data.velocity, delta);
+      // Bounce and skid along the ground.
+      const ground = heightAt(shard.position.x, shard.position.z) + 0.05;
+      if (shard.position.y < ground) {
+        shard.position.y = ground;
+        data.velocity.y *= -0.3;
+        data.velocity.x *= 0.6;
+        data.velocity.z *= 0.6;
+      }
+      shard.rotation.x += data.spin.x * delta;
+      shard.rotation.y += data.spin.y * delta;
+      shard.rotation.z += data.spin.z * delta;
+      // Shrink away at the end.
+      shard.scale.setScalar(data.size * Math.min(1, (SHARD_TIME - data.age) / 0.5));
+    }
+  }
+
   const toPlayer = new THREE.Vector3();
   let sinceRoar = ROAR_GAP;
   let sinceGrowl = GROWL_GAP;
   const loudness = (distance) => Math.max(0, 1 - distance / HEARING_DISTANCE);
 
   function update(delta, playerPosition, health) {
+    updateShards(delta);
     sinceRoar += delta;
     sinceGrowl += delta;
     const hidden = isUnderground(playerPosition);
@@ -170,6 +229,9 @@ export function createMonsters(collisions, sounds) {
       if (m.frozen > 0) {
         m.frozen -= delta;
         if (m.frozen <= 0) setSkin(m, skin);
+        // The minion crashing into it smashes it to pieces.
+        const close = Math.hypot(playerPosition.x - position.x, playerPosition.z - position.z) < SHATTER_DISTANCE;
+        if (close && Math.abs(playerPosition.y - 1.25 - position.y) < 1.5) shatter(m, i);
         continue;
       }
 

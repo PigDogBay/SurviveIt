@@ -14,15 +14,16 @@ const SPREAD = 0.07;
 const BLUNDERBUSS_RANGE = 30;
 const WAKE_DISTANCE = 50;
 
-// Fart gun: a cloud of gas that hurts and chokes monsters inside it.
-const CLOUD_DISTANCE = 4;
-const CLOUD_RADIUS = 2.5;
+// Fart gun: a big cloud of gas that hurts and chokes monsters inside it.
+const CLOUD_DISTANCE = 7;
+const CLOUD_RADIUS = 6;
 const CLOUD_TIME = 4;
 const CLOUD_TICK = 0.5;
 
-// Freeze ray: a beam that turns one monster to ice.
+// Freeze ray: a beam that turns one monster to ice. Walking into a frozen
+// monster shatters it.
 const FREEZE_RANGE = 40;
-const FREEZE_TIME = 5;
+const FREEZE_TIME = 2;
 
 // Flamethrower: hold the button to spray fire. Every monster in the spray
 // takes 1 damage each time the flamethrower fires (its reload time).
@@ -33,10 +34,11 @@ const FLAME_SPEED = 14;
 // Flames shot out each second while the button is held.
 const FLAMES_PER_SECOND = 60;
 
-// Sword: a wide swing that hits every monster within reach in front.
+// Sword: a wide swing that kills every monster within reach in front with
+// one hit (a monster has 6 health).
 const SWORD_REACH = 2.6;
 const SWORD_WIDTH = Math.cos(1);
-const SWORD_DAMAGE = 3;
+const SWORD_DAMAGE = 6;
 const SWING_TIME = 0.3;
 
 // In the order of the number keys that select them. The blunderbuss lies
@@ -280,10 +282,13 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     const cloud = new THREE.Group();
     cloud.position.copy(centre);
     const material = new THREE.SpriteMaterial({ map: gas, depthWrite: false, opacity: 0 });
-    for (let i = 0; i < 7; i++) {
+    // Puffs spread right across the cloud, so it looks as big as it hurts.
+    for (let i = 0; i < 24; i++) {
       const puff = new THREE.Sprite(material);
-      puff.position.set((Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 2.4);
-      puff.userData.size = 1.8 + Math.random() * 1.4;
+      const angle = Math.random() * Math.PI * 2;
+      const spread = Math.sqrt(Math.random()) * CLOUD_RADIUS * 0.85;
+      puff.position.set(Math.cos(angle) * spread, (Math.random() - 0.3) * 1.6, Math.sin(angle) * spread);
+      puff.userData.size = 2.6 + Math.random() * 2;
       cloud.add(puff);
     }
     group.add(cloud);

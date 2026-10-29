@@ -87,7 +87,7 @@ scene.add(felonius.group);
 forest.colliders.push(...felonius.colliders);
 
 const collisions = createCollisionGrid(forest.colliders);
-const monsters = createMonsters(collisions, sounds);
+const monsters = createMonsters(collisions, sounds, showMessage);
 scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
