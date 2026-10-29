@@ -104,5 +104,10 @@ export function createMedkits(colliders) {
     }
   }
 
-  return { group, update };
+  // Where the kits still lying about are, for the map.
+  function markers() {
+    return kits.map(({ kit }) => ({ x: kit.position.x, z: kit.position.z }));
+  }
+
+  return { group, update, markers };
 }

@@ -105,6 +105,8 @@ export function createKeys({ sounds, showMessage }) {
     group,
     update,
     has: (id) => carried.has(id),
+    // Where the keys not yet found are, for the map.
+    markers: () => KEYS.filter((key) => !key.collected).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z })),
     // Uses up a key, such as when it unlocks a door.
     use(id) {
       carried.delete(id);

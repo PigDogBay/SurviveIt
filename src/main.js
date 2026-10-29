@@ -9,6 +9,7 @@ import { createWeapons } from './weapons.js';
 import { createSounds } from './sounds.js';
 import { createKeys } from './keys.js';
 import { createTemple } from './temple.js';
+import { createMinimap } from './minimap.js';
 import { createCollisionGrid } from './collision.js';
 
 const NIGHT = 0x0b1418;
@@ -83,6 +84,9 @@ const player = createPlayer(camera, document.body, collisions);
 const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, sounds, showMessage });
 scene.add(weapons.group);
 
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, weapons, keys, monsters });
+const facing = new THREE.Vector3();
+
 const menu = document.getElementById('menu');
 const gameover = document.getElementById('gameover');
 let dead = false;
@@ -136,6 +140,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!dead) weapons.update(delta, timer.getElapsed(), camera.position);
   if (!dead) keys.update(timer.getElapsed(), camera.position);
   if (!dead) temple.update(delta, timer.getElapsed(), camera.position, collisions);
+  minimap.update(camera.position, camera.getWorldDirection(facing));
   // Monsters freeze while the game is paused, so pausing is safe.
   if (!dead && player.controls.isLocked) monsters.update(delta, camera.position, health);
 

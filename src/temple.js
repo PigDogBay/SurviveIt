@@ -261,5 +261,8 @@ export function createTemple({ keys, sounds, showMessage }) {
     state = 'opening';
   }
 
-  return { group, colliders, update };
+  // The hall's footprint, for the map. `angle` is its turn about the y axis.
+  const outline = { x: TEMPLE.x, z: TEMPLE.z, angle: group.rotation.y, width: WIDTH, depth: DEPTH };
+
+  return { group, colliders, outline, update };
 }

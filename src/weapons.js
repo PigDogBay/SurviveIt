@@ -336,5 +336,14 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     flashLight.intensity = Math.max(0, 1 - sinceShot / 0.1) * 40;
   }
 
-  return { group, update };
+  // Where the weapons not yet picked up are, for the map.
+  function markers() {
+    return WEAPONS.filter((weapon) => !weapon.owned).map((weapon) => ({
+      x: weapon.pickup.position.x,
+      z: weapon.pickup.position.z,
+      colour: `#${weapon.glow.toString(16).padStart(6, '0')}`,
+    }));
+  }
+
+  return { group, update, markers };
 }

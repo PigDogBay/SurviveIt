@@ -264,5 +264,10 @@ export function createMonsters(collisions) {
     return true;
   }
 
-  return { group, update, raycast, hurt, near, alert, freeze };
+  // Where the living monsters are, for the map.
+  function markers() {
+    return monsters.filter((m) => !m.dead).map((m) => ({ x: m.monster.position.x, z: m.monster.position.z }));
+  }
+
+  return { group, update, raycast, hurt, near, alert, freeze, markers };
 }

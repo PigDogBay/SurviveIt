@@ -43,6 +43,18 @@ canvas {
   text-shadow: 0 1px 3px #000;
 }
 
+/* Round and see-through, so the woods show behind it. */
+#minimap {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 #keys {
   position: fixed;
   top: 56px;
