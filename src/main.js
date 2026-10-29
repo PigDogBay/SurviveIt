@@ -95,6 +95,8 @@ scene.add(felonius.group);
 forest.colliders.push(...felonius.colliders);
 // Collecting an easter egg: Gru is pleased. `gru` is made further down.
 const easterEggs = createEasterEggs({
+  sounds,
+  showMessage,
   onCollect() {
     sounds.chime();
     gru.say('Well done on finding my treasure!');

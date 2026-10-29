@@ -97,7 +97,7 @@ function toWorld(x, z) {
   return [TEMPLE.x + x * cos + z * sin, TEMPLE.z - x * sin + z * cos];
 }
 // A spot on a dungeon floor, in the world.
-const onFloor = (x, z) => {
+export const onDungeonFloor = (x, z) => {
   const [wx, wz] = toWorld(x, z);
   return { x: wx, y: TEMPLE_FLOOR - DEPTH, z: wz };
 };
@@ -118,9 +118,9 @@ export const STAIRWAYS = STAIRS.map((stairs) => {
 // landing and in the west room, and the freeze ray in the west room; in the
 // second, a med kit at the foot of the stairs and the fart gun.
 export const DUNGEON_PICKUPS = {
-  medkits: [onFloor(-3.3, -7.6), onFloor(-6.3, 8.9), onFloor(-15.8, -1.6)],
-  freezeRay: onFloor(-8.5, 6.3),
-  fartGun: onFloor(-20, 11.5),
+  medkits: [onDungeonFloor(-3.3, -7.6), onDungeonFloor(-6.3, 8.9), onDungeonFloor(-15.8, -1.6)],
+  freezeRay: onDungeonFloor(-8.5, 6.3),
+  fartGun: onDungeonFloor(-20, 11.5),
 };
 
 const inside = (area, x, z, margin = 0) =>
@@ -385,6 +385,6 @@ export function buildDungeon({ add, stone, darkStone, flameMaterial }) {
     lights.forEach(({ light }, i) => light.position.copy(nearest[i]));
   }
 
-  const keySpots = Object.fromEntries(Object.entries(KEY_SPOTS).map(([id, spot]) => [id, onFloor(...spot)]));
+  const keySpots = Object.fromEntries(Object.entries(KEY_SPOTS).map(([id, spot]) => [id, onDungeonFloor(...spot)]));
   return { colliders, flames, lights, keySpots, update };
 }
