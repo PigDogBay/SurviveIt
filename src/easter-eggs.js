@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { onDungeonFloor, UNDERGROUND } from './dungeon.js';
+import { buildSkeleton, buildSkull, drawDino, SKULL_SPOT } from './dino.js';
+import { isUnderground, onDungeonFloor, UNDERGROUND } from './dungeon.js';
+import { DINO_CLEARING } from './forest.js';
 import { heightAt, TEMPLE } from './terrain.js';
 
 const EGG_HEIGHT = 0.8;
@@ -342,6 +344,17 @@ function drawAlien(ctx, cx, cy) {
   ctx.stroke();
 }
 
+// Brown speckles all over, then the dinosaur.
+function drawDinoEgg(ctx, cx, cy) {
+  ctx.fillStyle = 'rgba(138, 90, 42, 0.45)';
+  for (let i = 0; i < 160; i++) {
+    ctx.beginPath();
+    ctx.arc(Math.random() * 1024, Math.random() * 440, 3 + Math.random() * 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawDino(ctx, cx, cy + 20);
+}
+
 // Every easter egg: its name (for the list at the end), where it is (in the
 // temple's own space, z towards the front door, on a dungeon floor if
 // `underground`), its colours, and the picture on it. The picture faces
@@ -364,7 +377,16 @@ const EGGS = [
   },
   // Dropped by the UFO when it's shot.
   { name: 'Alien egg', dropped: true, appears: true, colour: '#7ae05a', band: '#3a1f6a', draw: drawAlien },
+  // Laid by the T-Rex skeleton once its skull is put back. Speckled like a
+  // real egg, with a cartoon dinosaur on the front.
+  { name: 'Dino egg', dropped: true, appears: true, colour: '#f3e8c8', band: '#8a5a2a', draw: drawDinoEgg },
 ];
+
+// The T-Rex skeleton stands in a clearing near the east edge of the map; its
+// skull lies on the ground far away near the west edge.
+const SKULL_LIES = { x: -142, z: -20 };
+// How close to the skeleton's neck the minion must bring the skull.
+const SKELETON_REACH = 5;
 
 // The couch is near the start, with the VHS tape floating over it. The TV is
 // in the first dungeon's west room, against the wall, on a little table.
@@ -515,7 +537,7 @@ const templeTurn = ([dx, dz]) => TEMPLE.angle + Math.atan2(dx, dz);
 // floats a little off the ground, bobbing up and down. Walking into one
 // collects it and tells `onCollect`. One of them comes out of the TV in the
 // dungeon, once the minion brings it the VHS tape from the couch.
-export function createEasterEggs({ onCollect, sounds, showMessage }) {
+export function createEasterEggs({ onCollect, sounds, showMessage, trees = [] }) {
   const group = new THREE.Group();
   const colliders = [];
   const geometry = eggGeometry();
@@ -599,13 +621,65 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
   let showStarted = 0;
   let lastShowFrame = -1;
 
+  // The headless skeleton, facing in towards the middle of the map.
+  const skeleton = buildSkeleton();
+  const dinoFloor = heightAt(DINO_CLEARING.x, DINO_CLEARING.z);
+  skeleton.position.set(DINO_CLEARING.x, dinoFloor, DINO_CLEARING.z);
+  // Turns its head end (+x) towards the middle.
+  skeleton.rotation.y = Math.atan2(DINO_CLEARING.z, -DINO_CLEARING.x);
+  group.add(skeleton);
+  skeleton.updateMatrixWorld();
+  // Its feet and the low end of its tail get in the way; the rest is high
+  // enough to walk under.
+  for (const [x, z, radius] of [[0.5, -0.45, 0.5], [0.5, 0.45, 0.5], [-3.6, 0, 0.5], [-4.6, 0, 0.45]]) {
+    const point = skeleton.localToWorld(new THREE.Vector3(x, 0, z));
+    colliders.push({ x: point.x, z: point.z, radius, above: dinoFloor - 1.5 });
+  }
+  const neck = skeleton.localToWorld(SKULL_SPOT.clone());
+
+  // The skull, lying on its side out in the woods, nudged clear of trees.
+  const skull = buildSkull();
+  let [skullX, skullZ] = [SKULL_LIES.x, SKULL_LIES.z];
+  for (let step = 0; step < 80; step++) {
+    const x = SKULL_LIES.x + Math.cos(step * 2.4) * step * 0.3;
+    const z = SKULL_LIES.z + Math.sin(step * 2.4) * step * 0.3;
+    if (trees.every((c) => Math.hypot(x - c.x, z - c.z) > c.radius + 1.5)) {
+      [skullX, skullZ] = [x, z];
+      break;
+    }
+  }
+  const skullFloor = heightAt(skullX, skullZ);
+  skull.position.set(skullX, skullFloor + 0.3, skullZ);
+  skull.rotation.set(Math.PI / 2 - 0.2, 0.7, 0.1);
+  group.add(skull);
+  let skullState = 'lying';
+  let toldAboutSkeleton = false;
+
+  // What the minion is carrying, shown under the keys.
   const items = document.getElementById('items');
+  const carrying = new Set();
+  function renderItems() {
+    items.innerHTML = [...carrying].map((item) => `<span class="key">${item}</span>`).join('');
+  }
+
+  // Brings out an egg that `appears`, rising from the ground at (x, z).
+  function bringOut(name, x, z, floor, time, facing) {
+    const egg = eggs.find((e) => e.name === name);
+    egg.waiting = false;
+    egg.appeared = time;
+    egg.floor = floor;
+    egg.mesh.position.set(x, floor - EGG_HEIGHT, z);
+    if (facing) egg.mesh.rotation.y = Math.atan2(facing.x - x, facing.z - z) + Math.PI;
+    group.add(egg.mesh);
+  }
 
   function update(time, playerPosition, collisions) {
     const delta = lastTime === null ? 0 : Math.min(0.1, Math.max(0, time - lastTime));
     lastTime = time;
     const feet = playerPosition.y - 1.25;
-    const underground = playerPosition.y < UNDERGROUND;
+    // Inside a dungeon, not just low down: the ground out east is lower than
+    // the temple floor.
+    const underground = isUnderground(playerPosition);
 
     if (tapeState === 'on couch') {
       tape.position.y = couchFloor + 1.1 + Math.sin(time * 1.5) * BOB;
@@ -614,7 +688,8 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
       if (near) {
         tapeState = 'carried';
         group.remove(tape);
-        items.innerHTML = '<span class="key">📼 VHS tape</span>';
+        carrying.add('📼 VHS tape');
+        renderItems();
         sounds.chime();
         showMessage("You found a VHS tape! Maybe there's a TV somewhere...");
       }
@@ -636,19 +711,49 @@ export function createEasterEggs({ onCollect, sounds, showMessage }) {
       }
       if (atTV && tapeState === 'carried') {
         tapeState = 'played';
-        items.innerHTML = '';
+        carrying.delete('📼 VHS tape');
+        renderItems();
         showStarted = time;
         sounds.click();
         sounds.pop();
         showMessage("You put the VHS tape in the TV... It's The Couch Potato Pete Show!");
         const egg = eggs.find((e) => e.name === 'Couch Potato Pete egg');
-        egg.waiting = false;
-        egg.appeared = time;
-        group.add(egg.mesh);
+        bringOut(egg.name, egg.mesh.position.x, egg.mesh.position.z, egg.floor, time);
       } else if (atTV && !toldAboutTV) {
         toldAboutTV = true;
         showMessage('An old TV, showing static. It needs something to play...');
       }
+    }
+
+    // The skull: pick it up, then bring it to the skeleton, which lays an egg.
+    if (skullState === 'lying') {
+      const near = Math.abs(feet - skullFloor) < 2 && Math.hypot(playerPosition.x - skullX, playerPosition.z - skullZ) < 1.6;
+      if (near) {
+        skullState = 'carried';
+        group.remove(skull);
+        carrying.add('🦴 T-Rex skull');
+        renderItems();
+        sounds.chime();
+        showMessage('You found a huge T-Rex skull! I wonder where it belongs...');
+      }
+    }
+    const atSkeleton = !underground && Math.hypot(playerPosition.x - neck.x, playerPosition.z - neck.z) < SKELETON_REACH;
+    if (atSkeleton && skullState === 'carried') {
+      skullState = 'returned';
+      carrying.delete('🦴 T-Rex skull');
+      renderItems();
+      // The skull goes back on its neck, snout first.
+      skull.position.copy(SKULL_SPOT);
+      skull.rotation.set(0, 0, -0.15);
+      skeleton.add(skull);
+      sounds.roar(1);
+      sounds.chime();
+      showMessage('The skull fits! The T-Rex... laid an egg?!');
+      const nest = skeleton.localToWorld(new THREE.Vector3(-1.2, 0, 1.4));
+      bringOut('Dino egg', nest.x, nest.z, heightAt(nest.x, nest.z), time, playerPosition);
+    } else if (atSkeleton && skullState === 'lying' && !toldAboutSkeleton) {
+      toldAboutSkeleton = true;
+      showMessage("A T-Rex skeleton... but where's its skull?");
     }
 
     for (const egg of eggs) {

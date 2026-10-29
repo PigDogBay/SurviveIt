@@ -4,6 +4,8 @@ import { createRandom, range } from './random.js';
 import { heightAt, TEMPLE, WORLD_RADIUS } from './terrain.js';
 
 const SPAWN_CLEARING = 9;
+// A clearing near the east edge of the map for the T-Rex skeleton easter egg.
+export const DINO_CLEARING = { x: 140, z: -5, radius: 9 };
 const CELL = 4.5;
 // Trees and rocks only get in the way of things no more than this far below
 // the ground, so the dungeons can run underneath them.
@@ -79,9 +81,11 @@ export function createForest() {
 
       // Thicker woods past the edge of the map so it feels endless.
       const outside = distance > WORLD_RADIUS;
-      // The random numbers are still drawn inside the temple clearing, so the
-      // rest of the forest keeps its layout.
-      const cleared = Math.hypot(x - TEMPLE.x, z - TEMPLE.z) < TEMPLE.clearing;
+      // The random numbers are still drawn inside the temple and dinosaur
+      // clearings, so the rest of the forest keeps its layout.
+      const cleared =
+        Math.hypot(x - TEMPLE.x, z - TEMPLE.z) < TEMPLE.clearing ||
+        Math.hypot(x - DINO_CLEARING.x, z - DINO_CLEARING.z) < DINO_CLEARING.radius;
       const roll = random();
       if (roll < (outside ? 0.85 : 0.5)) {
         const scale = range(random, 0.8, 1.7);

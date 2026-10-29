@@ -125,6 +125,7 @@ forest.colliders.push(...felonius.colliders);
 const easterEggs = createEasterEggs({
   sounds,
   showMessage,
+  trees: forest.colliders,
   onCollect() {
     sounds.chime();
     gru.say('Well done on finding my treasure!');
