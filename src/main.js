@@ -16,6 +16,7 @@ import { createFelonius } from './felonius.js';
 import { createChookie } from './chookie.js';
 import { combineTargets } from './targets.js';
 import { createGru } from './gru.js';
+import { createEasterEggs } from './easter-eggs.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -92,6 +93,15 @@ const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sound
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
+// Collecting an easter egg: Gru is pleased. `gru` is made further down.
+const easterEggs = createEasterEggs({
+  onCollect() {
+    sounds.chime();
+    gru.say('Well done on finding my treasure!');
+  },
+});
+scene.add(easterEggs.group);
+forest.colliders.push(...easterEggs.colliders);
 
 const collisions = createCollisionGrid(forest.colliders);
 const monsters = createMonsters(collisions, sounds, showMessage);
@@ -133,6 +143,22 @@ function succeed() {
   gameOver = true;
   sounds.fanfare();
   player.controls.unlock();
+  // The easter eggs found on the way.
+  const found = easterEggs.found();
+  document.querySelector('#eggs-found h2').textContent = `Easter eggs found: ${found.length} of ${easterEggs.total}`;
+  const list = document.querySelector('#eggs-found ul');
+  const items = found.map((name) => {
+    const item = document.createElement('li');
+    item.textContent = name;
+    return item;
+  });
+  if (items.length === 0) {
+    const none = document.createElement('li');
+    none.className = 'none';
+    none.textContent = 'None this time. Keep exploring!';
+    items.push(none);
+  }
+  list.replaceChildren(...items);
   success.classList.remove('hidden');
 }
 player.controls.addEventListener('lock', () => menu.classList.add('hidden'));
@@ -170,6 +196,7 @@ renderer.setAnimationLoop((timestamp) => {
 
   player.update(delta);
   fireflies.update(timer.getElapsed());
+  if (!gameOver && player.controls.isLocked) easterEggs.update(timer.getElapsed(), camera.position, collisions);
   if (!gameOver) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
   if (!gameOver && player.controls.isLocked) health.update(delta);
   if (!gameOver) weapons.update(delta, timer.getElapsed(), camera.position);

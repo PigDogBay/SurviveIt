@@ -56,6 +56,30 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
 
   let said = null;
   let newTimeout;
+  // Something Gru says for a few seconds instead of the next step.
+  let aside = null;
+  let asideUntil = 0;
+
+  function popUp() {
+    panel.classList.remove('hidden');
+    panel.classList.remove('new');
+    // Restart the pop even if it's already playing.
+    void panel.offsetWidth;
+    panel.classList.add('new');
+    clearTimeout(newTimeout);
+    newTimeout = setTimeout(() => panel.classList.remove('new'), 1500);
+    sounds.gru();
+  }
+
+  // Gru says something for `seconds`, then goes back to the next step.
+  function say(words, seconds = 4) {
+    aside = words;
+    asideUntil = performance.now() + seconds * 1000;
+    text.textContent = words;
+    arrow.style.visibility = 'hidden';
+    distanceText.textContent = '';
+    popUp();
+  }
   const forward = new THREE.Vector3();
 
   function update(playerPosition) {
@@ -64,16 +88,18 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
       panel.classList.add('hidden');
       return;
     }
+    if (aside) {
+      if (performance.now() < asideUntil) return;
+      // Back to the next step, quietly unless it's changed meanwhile.
+      aside = null;
+      text.textContent = said;
+    }
     const [words, target] = step;
     if (words !== said) {
       // A new instruction: Gru pipes up.
       said = words;
       text.textContent = words;
-      panel.classList.remove('hidden');
-      panel.classList.add('new');
-      clearTimeout(newTimeout);
-      newTimeout = setTimeout(() => panel.classList.remove('new'), 1500);
-      sounds.gru();
+      popUp();
     }
 
     // Point the arrow the way to go, as seen from where the minion is looking.
@@ -89,5 +115,5 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
     distanceText.textContent = distance > ARRIVED ? `${Math.round(distance)} m` : 'Here!';
   }
 
-  return { update };
+  return { update, say };
 }
