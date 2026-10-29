@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createRandom, range } from './random.js';
 import { heightAt, WORLD_RADIUS } from './terrain.js';
 import { rayCircle } from './collision.js';
+import { isUnderground } from './dungeon.js';
 
 const COUNT = 70;
 // Monsters never start this close to the player's starting clearing.
@@ -109,7 +110,7 @@ export function createMonsters(collisions, sounds) {
 
   function addMonster(x, z, heading, stride) {
     const position = new THREE.Vector3(x, 0, z);
-    collisions.pushOut(position, RADIUS);
+    collisions.pushOut(position, RADIUS, true);
     position.y = heightAt(position.x, position.z);
 
     const parts = buildMonster();
@@ -149,6 +150,7 @@ export function createMonsters(collisions, sounds) {
   function update(delta, playerPosition, health) {
     sinceRoar += delta;
     sinceGrowl += delta;
+    const hidden = isUnderground(playerPosition);
     for (let i = monsters.length - 1; i >= 0; i--) {
       const m = monsters[i];
       const position = m.monster.position;
@@ -175,7 +177,11 @@ export function createMonsters(collisions, sounds) {
       const distance = toPlayer.length();
 
       m.alerted -= delta;
-      if (distance < NOTICE_DISTANCE || m.alerted > 0) m.chasing = true;
+      // Monsters can't follow the minion down into the dungeon, so they lose track of them there.
+      if (hidden) {
+        m.chasing = false;
+        m.alerted = 0;
+      } else if (distance < NOTICE_DISTANCE || m.alerted > 0) m.chasing = true;
       else if (distance > GIVE_UP_DISTANCE) m.chasing = false;
 
       // Roar on first spotting the minion (or being shot or woken by a bang).
@@ -220,7 +226,7 @@ export function createMonsters(collisions, sounds) {
 
       position.x += Math.sin(m.heading) * speed * delta;
       position.z += Math.cos(m.heading) * speed * delta;
-      collisions.pushOut(position, RADIUS);
+      collisions.pushOut(position, RADIUS, true);
       position.y = heightAt(position.x, position.z);
 
       // Turn smoothly towards the way it's heading.
@@ -319,7 +325,7 @@ export function createMonsters(collisions, sounds) {
     const position = target.monster.position;
     position.x += direction.x * KNOCKBACK * amount;
     position.z += direction.z * KNOCKBACK * amount;
-    collisions.pushOut(position, RADIUS);
+    collisions.pushOut(position, RADIUS, true);
     position.y = heightAt(position.x, position.z);
     if (target.health > 0) return false;
     target.dead = true;

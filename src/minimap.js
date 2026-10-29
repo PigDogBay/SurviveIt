@@ -42,7 +42,9 @@ export function createMinimap({ colliders, temple, medkits, ammo, weapons, keys,
   groundCtx.arc(SIZE / 2, SIZE / 2, WORLD_RADIUS * scale, 0, Math.PI * 2);
   groundCtx.fill();
   groundCtx.fillStyle = '#1d3a1e';
-  for (const { x, z, radius } of colliders) {
+  for (const { x, z, radius, below, monstersOnly } of colliders) {
+    // The dungeon's walls are underground, and some colliders are invisible.
+    if (below !== undefined || monstersOnly) continue;
     const r = Math.max(0.6, radius * scale);
     groundCtx.fillRect(mapX(x) - r, mapY(z) - r, r * 2, r * 2);
   }

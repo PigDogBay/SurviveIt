@@ -2,6 +2,17 @@ import { WORLD_RADIUS } from './terrain.js';
 
 const CELL = 6;
 
+// Whether a collider gets in the way of something at height `y`. A collider
+// can be only `above` or only `below` a height, so the temple's walls don't
+// block the dungeon underneath it and the other way round. `monstersOnly`
+// colliders stop monsters but let the minion through.
+function blocks(collider, y, isMonster) {
+  if (collider.monstersOnly && !isMonster) return false;
+  if (collider.above !== undefined && y < collider.above) return false;
+  if (collider.below !== undefined && y >= collider.below) return false;
+  return true;
+}
+
 // Buckets the tree and rock colliders into a grid so anything moving (the
 // player, monsters) only checks the few colliders near it.
 export function createCollisionGrid(colliders) {
@@ -38,12 +49,14 @@ export function createCollisionGrid(colliders) {
 
   // Moves `position` so a circle of `radius` around it isn't inside any
   // collider, and keeps it inside the map.
-  function pushOut(position, radius) {
+  function pushOut(position, radius, isMonster = false) {
     const cx = Math.floor(position.x / CELL);
     const cz = Math.floor(position.z / CELL);
     for (let ox = -1; ox <= 1; ox++) {
       for (let oz = -1; oz <= 1; oz++) {
-        for (const { x, z, radius: r } of cells.get(key(cx + ox, cz + oz)) ?? []) {
+        for (const collider of cells.get(key(cx + ox, cz + oz)) ?? []) {
+          if (!blocks(collider, position.y, isMonster)) continue;
+          const { x, z, radius: r } = collider;
           const dx = position.x - x;
           const dz = position.z - z;
           const minDistance = r + radius;
@@ -78,6 +91,7 @@ export function createCollisionGrid(colliders) {
           for (const collider of cells.get(key(cx + ox, cz + oz)) ?? []) {
             if (checked.has(collider)) continue;
             checked.add(collider);
+            if (!blocks(collider, origin.y, false)) continue;
             nearest = Math.min(nearest, rayCircle(origin, direction, collider.x, collider.z, collider.radius));
           }
         }

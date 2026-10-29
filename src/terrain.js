@@ -5,8 +5,8 @@ export const WORLD_RADIUS = 160;
 const GROUND_SIZE = WORLD_RADIUS * 2 + 80;
 
 // Where the ancient temple stands. The ground is flat within `flat` of it,
-// and no trees grow within `clearing`.
-export const TEMPLE = { x: 72, z: 88, flat: 16, clearing: 20 };
+// and no trees grow within `clearing`. `angle` turns it to face the start.
+export const TEMPLE = { x: 72, z: 88, flat: 16, clearing: 20, angle: Math.atan2(-72, -88) };
 const TEMPLE_BLEND = 8;
 
 function hills(x, z) {
@@ -60,7 +60,9 @@ function groundTexture() {
   return texture;
 }
 
-export function createTerrain() {
+// `cutOut(x, z)` says where to leave a hole in the ground, such as over the
+// stairs down to the dungeon.
+export function createTerrain(cutOut = () => false) {
   const geometry = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE, 200, 200);
   geometry.rotateX(-Math.PI / 2);
 
@@ -69,6 +71,17 @@ export function createTerrain() {
     position.setY(i, heightAt(position.getX(i), position.getZ(i)));
   }
   geometry.computeVertexNormals();
+
+  // Leave out every triangle whose middle is in the hole.
+  const index = geometry.index.array;
+  const kept = [];
+  for (let i = 0; i < index.length; i += 3) {
+    const [a, b, c] = [index[i], index[i + 1], index[i + 2]];
+    const x = (position.getX(a) + position.getX(b) + position.getX(c)) / 3;
+    const z = (position.getZ(a) + position.getZ(b) + position.getZ(c)) / 3;
+    if (!cutOut(x, z)) kept.push(a, b, c);
+  }
+  geometry.setIndex(kept);
 
   const material = new THREE.MeshStandardMaterial({
     map: groundTexture(),

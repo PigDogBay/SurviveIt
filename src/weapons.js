@@ -269,7 +269,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     // The cloud stops short of any tree in the way.
     const distance = Math.max(1.5, clearDistance(origin, aim, CLOUD_DISTANCE) - 0.5);
     const centre = origin.clone().addScaledVector(aim, distance);
-    centre.y = heightAt(centre.x, centre.z) + 1;
+    // About 1 m off the ground, wherever the minion is standing, even in the dungeon.
+    centre.y = origin.y - 0.25;
 
     const cloud = new THREE.Group();
     cloud.position.copy(centre);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { groundAt } from './dungeon.js';
 import { heightAt } from './terrain.js';
 
 // Minions are short, so the camera sits low.
@@ -64,9 +65,10 @@ export function createPlayer(camera, domElement, collisions) {
     position.z += velocity.z * delta;
     collisions.pushOut(position, PLAYER_RADIUS);
 
-    groundY = heightAt(position.x, position.z);
+    let feetY = position.y - EYE_HEIGHT - bobOffset();
+    groundY = groundAt(position.x, feetY, position.z);
     verticalSpeed -= GRAVITY * delta;
-    let feetY = position.y - EYE_HEIGHT - bobOffset() + verticalSpeed * delta;
+    feetY += verticalSpeed * delta;
     if (feetY <= groundY) {
       feetY = groundY;
       verticalSpeed = 0;

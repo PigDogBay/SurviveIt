@@ -6,8 +6,9 @@ const PICKUP_DISTANCE = 1.4;
 const hex = (colour) => `#${colour.toString(16).padStart(6, '0')}`;
 
 // Every key in the game. The temple key is plain gold; each chamber key
-// has a gem that matches the ring on its chamber's door. The cage key goes
-// here later.
+// has a gem that matches the ring on its chamber's door. A key with no
+// `spot` is put in place by whatever hides it (the red key is in the dungeon
+// under the temple). The cage key goes here later.
 const KEYS = [
   {
     id: 'temple',
@@ -17,7 +18,7 @@ const KEYS = [
     found: 'You found the temple key! Now find the temple',
   },
   ...[
-    ['red', 'Red', 0xff4a3a, [95, -70]],
+    ['red', 'Red', 0xff4a3a, null],
     ['blue', 'Blue', 0x4a8cff, [-120, 20]],
     ['green', 'Green', 0x5ae05a, [10, 125]],
     ['purple', 'Purple', 0xb46aff, [-30, -130]],
@@ -99,7 +100,7 @@ export function createKeys({ colliders, sounds, showMessage }) {
   const carried = new Set();
 
   for (const key of KEYS) {
-    const [x, z] = clearSpot(...key.spot, colliders);
+    const [x, z] = key.spot ? clearSpot(...key.spot, colliders) : [0, 0];
     key.model = buildKey(key.gem && key.colour);
     key.model.traverse((part) => (part.castShadow = true));
     // Ignores fog so a key's glow can be spotted between the trees from afar.
@@ -109,7 +110,8 @@ export function createKeys({ colliders, sounds, showMessage }) {
     glow.scale.set(2, 2, 1);
     key.pickup = new THREE.Group();
     key.pickup.add(key.model, glow);
-    key.pickup.position.set(x, heightAt(x, z) + 0.7, z);
+    key.floor = heightAt(x, z);
+    key.pickup.position.set(x, key.floor + 0.7, z);
     group.add(key.pickup);
     key.collected = false;
   }
@@ -125,9 +127,11 @@ export function createKeys({ colliders, sounds, showMessage }) {
     for (const key of KEYS) {
       if (key.collected) continue;
       const { pickup } = key;
-      pickup.position.y = heightAt(pickup.position.x, pickup.position.z) + 0.7 + Math.sin(time * 2) * 0.1;
+      pickup.position.y = key.floor + 0.7 + Math.sin(time * 2) * 0.1;
       key.model.rotation.y = time * 1.5;
-      if (Math.hypot(playerPosition.x - pickup.position.x, playerPosition.z - pickup.position.z) < PICKUP_DISTANCE) {
+      // Only on the same level, so the hall floor can't reach a key in the dungeon below.
+      const sameLevel = Math.abs(playerPosition.y - pickup.position.y) < 2;
+      if (sameLevel && Math.hypot(playerPosition.x - pickup.position.x, playerPosition.z - pickup.position.z) < PICKUP_DISTANCE) {
         key.collected = true;
         carried.add(key.id);
         group.remove(pickup);
@@ -142,9 +146,16 @@ export function createKeys({ colliders, sounds, showMessage }) {
     group,
     update,
     has: (id) => carried.has(id),
-    // Where the keys not yet found are, for the map.
+    // Where the keys not yet found are, for the map. Hidden keys stay off it.
     markers: () =>
-      KEYS.filter((key) => !key.collected).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z, colour: hex(key.colour) })),
+      KEYS.filter((key) => !key.collected && !key.hidden).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z, colour: hex(key.colour) })),
+    // Puts a key with no `spot` in place, with its floor at `y`. It stays off the map.
+    place(id, { x, y, z }) {
+      const key = keyInfo(id);
+      key.floor = y;
+      key.hidden = true;
+      key.pickup.position.set(x, y + 0.7, z);
+    },
     // Uses up a key, such as when it unlocks a door.
     use(id) {
       carried.delete(id);

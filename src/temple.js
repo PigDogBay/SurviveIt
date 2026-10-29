@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { createRandom, range } from './random.js';
 import { TEMPLE, TEMPLE_FLOOR } from './terrain.js';
 import { keyInfo } from './keys.js';
+import { stoneBox, stoneTexture } from './stone.js';
+import { buildDungeon, slabAroundStairs, UNDERGROUND } from './dungeon.js';
 
 // The hall, in metres. The front, with the door, faces the player's start.
 const WIDTH = 14;
@@ -31,48 +32,6 @@ const CHAMBER_DOOR_HEIGHT = 3;
 // stops the minion walking through trees stops them walking through walls.
 const WALL_RADIUS = 0.55;
 const WALL_STEP = 0.5;
-// One stone texture tile covers this many metres.
-const TILE = 2;
-
-// Rows of old stone blocks with dark mortar and patches of moss.
-function stoneTexture() {
-  const size = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const random = createRandom(77);
-  ctx.fillStyle = '#1c1a16';
-  ctx.fillRect(0, 0, size, size);
-
-  const rows = 4;
-  const blockHeight = size / rows;
-  for (let row = 0; row < rows; row++) {
-    const blockWidth = size / 2;
-    const offset = row % 2 ? blockWidth / 2 : 0;
-    for (let x = -offset; x < size; x += blockWidth) {
-      const shade = Math.floor(range(random, 88, 128));
-      ctx.fillStyle = `rgb(${shade},${shade - 6},${shade - 18})`;
-      ctx.fillRect(x + 3, row * blockHeight + 3, blockWidth - 6, blockHeight - 6);
-      // Chips and stains so the blocks look worn.
-      for (let i = 0; i < 40; i++) {
-        ctx.fillStyle = `rgba(0,0,0,${range(random, 0.05, 0.2)})`;
-        ctx.fillRect(x + range(random, 3, blockWidth - 8), row * blockHeight + range(random, 3, blockHeight - 8), range(random, 2, 8), range(random, 2, 6));
-      }
-    }
-  }
-
-  for (let i = 0; i < 70; i++) {
-    ctx.fillStyle = `rgba(${Math.floor(range(random, 40, 70))},${Math.floor(range(random, 80, 110))},30,${range(random, 0.25, 0.6)})`;
-    ctx.beginPath();
-    ctx.arc(random() * size, random() * size, range(random, 3, 14), 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
 
 function flameTexture() {
   const canvas = document.createElement('canvas');
@@ -87,32 +46,6 @@ function flameTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-// A box whose stone texture is the same size on every face, however big
-// the box is.
-function stoneBox(width, height, depth, material) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const uv = geometry.attributes.uv;
-  // Faces are +x, -x, +y, -y, +z, -z, with 4 corners each.
-  const faces = [
-    [depth, height],
-    [depth, height],
-    [width, depth],
-    [width, depth],
-    [width, height],
-    [width, height],
-  ];
-  faces.forEach(([u, v], face) => {
-    for (let corner = 0; corner < 4; corner++) {
-      const i = face * 4 + corner;
-      uv.setXY(i, (uv.getX(i) * u) / TILE, (uv.getY(i) * v) / TILE);
-    }
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  return mesh;
-}
-
 // The ancient temple: a mossy stone hall with pillars at the front and a
 // stepped roof, and four hidden chambers built onto its sides. Each door is
 // sealed until the minion brings the key that fits it.
@@ -123,7 +56,7 @@ export function createTemple({ keys, sounds, showMessage }) {
 
   const group = new THREE.Group();
   group.position.set(TEMPLE.x, TEMPLE_FLOOR, TEMPLE.z);
-  group.rotation.y = Math.atan2(-TEMPLE.x, -TEMPLE.z);
+  group.rotation.y = TEMPLE.angle;
   group.updateMatrixWorld();
   // Everything is laid out in the temple's own space, then moved into the world.
   const toWorld = (x, z) => new THREE.Vector3(x, 0, z).applyMatrix4(group.matrixWorld);
@@ -140,12 +73,12 @@ export function createTemple({ keys, sounds, showMessage }) {
     const steps = Math.max(1, Math.round(length / WALL_STEP));
     for (let i = 0; i <= steps; i++) {
       const point = toWorld(THREE.MathUtils.lerp(x1, x2, i / steps), THREE.MathUtils.lerp(z1, z2, i / steps));
-      list.push({ x: point.x, z: point.z, radius: WALL_RADIUS });
+      list.push({ x: point.x, z: point.z, radius: WALL_RADIUS, above: UNDERGROUND });
     }
   }
   function post(x, z, radius) {
     const point = toWorld(x, z);
-    colliders.push({ x: point.x, z: point.z, radius });
+    colliders.push({ x: point.x, z: point.z, radius, above: UNDERGROUND });
   }
 
   const halfWidth = WIDTH / 2;
@@ -154,9 +87,9 @@ export function createTemple({ keys, sounds, showMessage }) {
   const wallZ = halfDepth - WALL / 2;
   const doorEdge = DOOR_WIDTH / 2;
 
-  // Walls, sunk a little into the ground. The front wall has the main
+  // Walls, sunk a little into the ground, but not as far as the dungeon's ceiling. The front wall has the main
   // doorway and each side wall has two doorways into the chambers.
-  const sink = 0.5;
+  const sink = 0.3;
   const wallY = (WALL_HEIGHT - sink) / 2;
   const fullHeight = WALL_HEIGHT + sink;
   add(stoneBox(WIDTH - 2 * WALL, fullHeight, WALL, stone), 0, wallY, -wallZ);
@@ -185,8 +118,9 @@ export function createTemple({ keys, sounds, showMessage }) {
     }
   }
 
-  // Stone floors inside and under the porch, just above the ground.
-  add(stoneBox(WIDTH - 2 * WALL, 0.1, DEPTH - 2 * WALL, darkStone), 0, 0, 0);
+  // Stone floors inside and under the porch, just above the ground. The
+  // hall floor has a hole for the stairs down to the dungeon.
+  slabAroundStairs({ x1: -halfWidth + WALL, x2: halfWidth - WALL, z1: -halfDepth + WALL, z2: halfDepth - WALL }, 0, 0.1, darkStone, add);
   const porchDepth = 4.5;
   add(stoneBox(WIDTH + 2, 0.1, porchDepth, darkStone), 0, 0, halfDepth + porchDepth / 2);
 
@@ -312,6 +246,13 @@ export function createTemple({ keys, sounds, showMessage }) {
     { light: add(new THREE.PointLight(0xff8a3a, 12, 16, 1.5), 0, 2.2, -halfDepth + 2.5), brightness: 12 },
   ];
 
+  // The dungeon underneath, with the red key hidden in it.
+  const dungeon = buildDungeon({ add, stone, darkStone, flameMaterial });
+  colliders.push(...dungeon.colliders);
+  flames.push(...dungeon.flames);
+  lights.push(...dungeon.lights);
+  keys.place('red', dungeon.keySpot);
+
   function update(delta, time, playerPosition, collisions) {
     for (const { flame, phase } of flames) {
       const flicker = 0.85 + Math.sin(time * 9 + phase) * 0.1 + Math.sin(time * 23 + phase * 2) * 0.05;
@@ -335,8 +276,9 @@ export function createTemple({ keys, sounds, showMessage }) {
       }
       if (d.state !== 'locked') continue;
 
+      // Doors are up in the temple, out of reach from the dungeon below.
       const distance = Math.hypot(playerPosition.x - d.position.x, playerPosition.z - d.position.z);
-      if (distance > DOOR_REACH) continue;
+      if (distance > DOOR_REACH || playerPosition.y < UNDERGROUND) continue;
       if (!keys.has(d.keyId)) {
         showMessage(d.locked);
         continue;
