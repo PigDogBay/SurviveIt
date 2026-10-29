@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { rayCircle } from './collision.js';
 import { isUnderground } from './dungeon.js';
+import { fireMaterial } from './monsters.js';
 import { CAGE, CAGE_HEIGHT } from './felonius.js';
 import { heightAt } from './terrain.js';
 
@@ -32,6 +33,9 @@ const DIVE_HIT = 2.6;
 const DIVE_DAMAGE = 30;
 // After landing from a dive it's dazed for a moment: the best time to hit it.
 const STUNNED_TIME = 2.2;
+// Set alight, it loses BURN_DAMAGE every BURN_TICK while it burns.
+const BURN_TICK = 0.5;
+const BURN_DAMAGE = 1;
 const FLYING = ['rising', 'circling', 'aiming', 'diving', 'landing'];
 
 // Chookie, from Henry's drawing: a huge brown bird with pink legs and necks,
@@ -186,6 +190,9 @@ export function createChookie({ keys, sounds, showMessage }) {
   let attackTimer = 0;
   let peckTimer = 0;
   let hurtFlash = 0;
+  let burning = 0;
+  let burnTick = 0;
+  let fire = null;
   let stride = 0;
   let snoreTimer = 0;
   let warned = false;
@@ -247,6 +254,7 @@ export function createChookie({ keys, sounds, showMessage }) {
   function update(delta, time, playerPosition, minionHealth, collisions) {
     if (state === 'gone') return;
     sinceCaw += delta;
+    if (burning > 0) burn(delta);
     attackTimer -= delta;
     peckTimer -= delta;
     hurtFlash -= delta;
@@ -464,6 +472,50 @@ export function createChookie({ keys, sounds, showMessage }) {
     return across && level ? [self] : [];
   }
 
+  // Set alight: flames all over its body, like a burning monster's but bigger.
+  function ignite(target, seconds) {
+    if (!alive()) return;
+    if (state === 'asleep') wake();
+    if (frozen > 0) {
+      // Fire melts the ice.
+      frozen = 0;
+      setIce(false);
+    }
+    burning = Math.max(burning, seconds);
+    if (!fire) {
+      fire = new THREE.Group();
+      for (const [x, y, z] of [
+        [0, 2.2, 0.6],
+        [-0.7, 2.7, 0],
+        [0.7, 2.6, 0],
+        [0, 3.3, -0.4],
+        [-0.3, 3.9, 1],
+        [0.4, 3.6, 0.9],
+        [0, 2.4, -1],
+      ]) {
+        const flame = new THREE.Sprite(fireMaterial);
+        flame.position.set(x, y, z);
+        fire.add(flame);
+      }
+      chookie.add(fire);
+    }
+    fire.visible = true;
+  }
+
+  function burn(delta) {
+    burning -= delta;
+    fire.children.forEach((flame, i) => {
+      const flicker = 0.75 + Math.sin(burning * 14 + i * 1.9) * 0.2 + Math.random() * 0.1;
+      flame.scale.set(1.3 * flicker, 1.7 * flicker, 1);
+    });
+    burnTick -= delta;
+    if (burnTick <= 0) {
+      burnTick = BURN_TICK;
+      hurt(self, BURN_DAMAGE);
+    }
+    if (burning <= 0 || !alive()) fire.visible = false;
+  }
+
   function freeze(target, seconds) {
     if (!alive()) return;
     if (state === 'asleep') wake();
@@ -487,6 +539,7 @@ export function createChookie({ keys, sounds, showMessage }) {
     near,
     freeze,
     blind: blindIt,
+    ignite,
     // Bangs don't wake Chookie: it sleeps deeply until the minion brings the key.
     alert() {},
     owns: (target) => target === self,

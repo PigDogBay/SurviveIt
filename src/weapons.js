@@ -26,11 +26,13 @@ const FREEZE_RANGE = 40;
 const FREEZE_TIME = 2;
 
 // Flamethrower: hold the button to spray fire. Every monster in the spray
-// takes 1 damage each time the flamethrower fires (its reload time).
-const FLAME_RANGE = 7;
+// takes 1 damage each time the flamethrower fires (its reload time), and
+// catches fire for BURN_TIME, burning on after the spray moves away.
+const FLAME_RANGE = 12;
 // How wide the spray is: the cosine of the angle either side of the crosshair.
 const FLAME_WIDTH = Math.cos(0.3);
-const FLAME_SPEED = 14;
+const FLAME_SPEED = 20;
+const BURN_TIME = 3;
 // Flames shot out each second while the button is held.
 const FLAMES_PER_SECOND = 60;
 
@@ -411,7 +413,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   // is in the way. Returns how many were hit.
   const flatAim = new THREE.Vector3();
   const towards = new THREE.Vector3();
-  function hitInFront(reach, width, damage) {
+  // `onHit` is told about each target hit, before it's hurt.
+  function hitInFront(reach, width, damage, onHit) {
     flatAim.copy(aim).setY(0).normalize();
     let hits = 0;
     let kills = 0;
@@ -423,6 +426,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
       if (distance > 1 && towards.dot(flatAim) < width) continue;
       if (collisions.rayDistance(origin, towards, distance) < distance) continue;
       hits++;
+      onHit?.(target);
       if (monsters.hurt(target, damage, towards)) kills++;
     }
     showHits(hits, kills);
@@ -431,7 +435,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
 
   function fireFlamethrower() {
     sounds.flame();
-    hitInFront(FLAME_RANGE, FLAME_WIDTH, 1);
+    hitInFront(FLAME_RANGE, FLAME_WIDTH, 1, (target) => monsters.ignite(target, BURN_TIME));
   }
 
   const flameMap = flameTexture();

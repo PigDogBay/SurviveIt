@@ -1,6 +1,6 @@
 // Puts several kinds of enemy (the monsters, Chookie) behind one set of calls,
 // so every weapon can hit any of them. Each kind must say which targets it
-// `owns` and offer raycast, hurt, near, alert, freeze and blind.
+// `owns` and offer raycast, hurt, near, alert, freeze, blind and ignite.
 export function combineTargets(...kinds) {
   const ownerOf = (target) => kinds.find((kind) => kind.owns(target));
   return {
@@ -18,5 +18,6 @@ export function combineTargets(...kinds) {
     alert: (point, radius) => kinds.forEach((kind) => kind.alert(point, radius)),
     freeze: (target, seconds) => ownerOf(target)?.freeze(target, seconds),
     blind: (target, seconds) => ownerOf(target)?.blind(target, seconds),
+    ignite: (target, seconds) => ownerOf(target)?.ignite(target, seconds),
   };
 }

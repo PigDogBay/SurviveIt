@@ -35,6 +35,13 @@ const BLIND_SPEED = 3.5;
 const BLIND_TOUCH = 1.3;
 // Walking into a frozen monster shatters it, this close.
 const SHATTER_DISTANCE = 1.1;
+// A burning monster loses BURN_DAMAGE every BURN_TICK while it burns, and
+// sets any monster it touches alight too, for BURN_TIME.
+const BURN_TIME = 3;
+const BURN_TICK = 0.5;
+const BURN_DAMAGE = 1;
+const CATCH_FIRE = 1.2;
+const YELP_GAP = 0.3;
 const SHARDS = 26;
 const SHARD_TIME = 1.6;
 // A chasing monster growls now and then once it's this close.
@@ -51,6 +58,31 @@ const skin = new THREE.MeshStandardMaterial({ color: 0x1c1a1f, roughness: 0.85 }
 // Eyes ignore fog and lighting, so a pair of red eyes is the first thing you
 // see in the dark.
 const eyes = new THREE.MeshBasicMaterial({ color: 0xff2a1a, fog: false });
+// Flames that dance on a burning monster.
+function fireTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  const fire = ctx.createRadialGradient(32, 40, 0, 32, 36, 30);
+  fire.addColorStop(0, 'rgba(255,240,170,1)');
+  fire.addColorStop(0.35, 'rgba(255,140,30,0.85)');
+  fire.addColorStop(1, 'rgba(200,40,0,0)');
+  ctx.fillStyle = fire;
+  ctx.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(canvas);
+}
+export const fireMaterial = new THREE.SpriteMaterial({ map: fireTexture(), depthWrite: false, blending: THREE.AdditiveBlending });
+// Out at the edges of its body, so the flames lick round the outside.
+const FIRE_SPOTS = [
+  [0, 0.6, 0.45],
+  [-0.55, 1.1, 0.2],
+  [0.55, 1.2, 0.2],
+  [0, 1.5, 0.6],
+  [-0.3, 2.2, 0.55],
+  [0.35, 2.0, 0.45],
+  [0, 2.5, 0.2],
+];
+
 // Frozen monsters swap their skin for ice.
 const ice = new THREE.MeshStandardMaterial({ color: 0xa8dcff, emissive: 0x1a4a6a, roughness: 0.15 });
 
@@ -140,6 +172,9 @@ export function createMonsters(collisions, sounds, showMessage) {
       roared: false,
       growlTimer: 0,
       blind: 0,
+      burning: 0,
+      burnTick: 0,
+      fire: null,
     };
     monsters.push(m);
     return m;
@@ -212,6 +247,7 @@ export function createMonsters(collisions, sounds, showMessage) {
 
   function update(delta, playerPosition, health) {
     updateShards(delta);
+    sinceYelp += delta;
     sinceRoar += delta;
     sinceGrowl += delta;
     const hidden = isUnderground(playerPosition);
@@ -219,7 +255,9 @@ export function createMonsters(collisions, sounds, showMessage) {
       const m = monsters[i];
       const position = m.monster.position;
       if (m.dead) {
-        // Topple over, then sink into the ground and disappear.
+        // Topple over, then sink into the ground and disappear. The flames
+        // die down as it falls.
+        if (m.fire) m.fire.visible = m.deathTimer < 0.8;
         m.deathTimer += delta;
         const fall = Math.min(1, m.deathTimer / 0.5);
         m.monster.rotation.x = -(Math.PI / 2) * fall * fall;
@@ -229,6 +267,11 @@ export function createMonsters(collisions, sounds, showMessage) {
           monsters.splice(i, 1);
         }
         continue;
+      }
+
+      if (m.burning > 0) {
+        burn(m, delta);
+        if (m.dead) continue;
       }
 
       if (m.frozen > 0) {
@@ -344,6 +387,51 @@ export function createMonsters(collisions, sounds, showMessage) {
     });
   }
 
+  // Sets a monster alight for `seconds`. Fire melts ice.
+  let sinceYelp = YELP_GAP;
+  function ignite(target, seconds) {
+    if (target.dead) return;
+    if (target.frozen > 0) {
+      target.frozen = 0;
+      setSkin(target, skin);
+    }
+    if (!(target.burning > 0) && sinceYelp >= YELP_GAP) {
+      sounds.yelp(0.8);
+      sinceYelp = 0;
+    }
+    target.burning = Math.max(target.burning, seconds);
+    if (!target.fire) {
+      target.fire = new THREE.Group();
+      for (const [x, y, z] of FIRE_SPOTS) {
+        const flame = new THREE.Sprite(fireMaterial);
+        flame.position.set(x, y, z);
+        target.fire.add(flame);
+      }
+      target.monster.add(target.fire);
+    }
+    target.fire.visible = true;
+  }
+
+  // Burns a monster for a moment: it loses health now and then, its flames
+  // flicker, and it sets alight any monster it touches.
+  function burn(m, delta) {
+    m.burning -= delta;
+    m.fire.children.forEach((flame, i) => {
+      const flicker = 0.75 + Math.sin(m.burning * 14 + i * 1.9) * 0.2 + Math.random() * 0.1;
+      flame.scale.set(1.1 * flicker, 1.5 * flicker, 1);
+    });
+    m.burnTick -= delta;
+    if (m.burnTick <= 0) {
+      m.burnTick = BURN_TICK;
+      if (hurt(m, BURN_DAMAGE, new THREE.Vector3())) showMessage('Monster burned up!');
+    }
+    if (m.dead) return;
+    for (const other of near(m.monster.position, CATCH_FIRE)) {
+      if (other !== m && !(other.burning > 0)) ignite(other, BURN_TIME);
+    }
+    if (m.burning <= 0) m.fire.visible = false;
+  }
+
   // Takis in the eyes: the monster can't see for `seconds`.
   function blind(target, seconds) {
     if (target.dead) return;
@@ -436,5 +524,5 @@ export function createMonsters(collisions, sounds, showMessage) {
     return monsters.filter((m) => !m.dead).map((m) => ({ x: m.monster.position.x, z: m.monster.position.z }));
   }
 
-  return { group, update, raycast, hurt, near, alert, freeze, blind, ambush, markers, owns: (target) => monsters.includes(target) };
+  return { group, update, raycast, hurt, near, alert, freeze, blind, ignite, ambush, markers, owns: (target) => monsters.includes(target) };
 }
