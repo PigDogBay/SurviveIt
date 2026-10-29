@@ -172,3 +172,94 @@ export function buildFreezeRay() {
   grip(gun, blue);
   return gun;
 }
+
+const fireGlow = new THREE.MeshBasicMaterial({ color: 0xff8a2a });
+
+// The flamethrower: two yellow fuel tanks on a blue body, a hose, and a
+// long steel nozzle with a little pilot flame at the tip. Points along -z.
+export function buildFlamethrower() {
+  const gun = new THREE.Group();
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.26), blue);
+  body.position.z = 0.0;
+  gun.add(body);
+
+  for (const x of [-0.03, 0.03]) {
+    const tank = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.12, 6, 14).rotateX(Math.PI / 2), yellow);
+    tank.position.set(x, 0.055, -0.03);
+    const valve = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.016, 8), steel);
+    valve.position.set(x, 0.08, 0.02);
+    gun.add(tank, valve);
+  }
+
+  const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.026, 0.3, 14).rotateX(Math.PI / 2), steel);
+  nozzle.position.set(0, 0.035, -0.27);
+  const tipRing = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.007, 6, 16), iron);
+  tipRing.position.set(0, 0.035, -0.42);
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.018, 14), bore);
+  hole.position.set(0, 0.035, -0.421);
+  hole.rotation.y = Math.PI;
+  gun.add(nozzle, tipRing, hole);
+
+  // A curly hose from the tanks down to the nozzle.
+  const hose = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.03, 0.05, -0.1),
+        new THREE.Vector3(0.045, 0.055, -0.15),
+        new THREE.Vector3(0.02, 0.045, -0.2),
+      ]),
+      12,
+      0.008,
+      6,
+    ),
+    iron,
+  );
+  gun.add(hose);
+
+  const pilot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 10, 8), fireGlow);
+  pilot.scale.set(1, 1.6, 1);
+  pilot.position.set(0, 0.01, -0.41);
+  gun.add(pilot);
+
+  // A front handle under the nozzle as well as the trigger grip.
+  const front = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, 0.035), blue);
+  front.position.set(0, -0.025, -0.2);
+  gun.add(front);
+
+  grip(gun, blue);
+  return gun;
+}
+
+// The sword: a shining blade, a golden cross-guard with a goggle-style
+// round pommel, and a blue wrapped handle. The blade points along -z.
+export function buildSword() {
+  const sword = new THREE.Group();
+
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.01, 0.5), steel);
+  blade.position.z = -0.3;
+  const point = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.032, 0.09, 4, 1).rotateX(-Math.PI / 2).rotateZ(Math.PI / 4), steel);
+  point.scale.set(1, 0.32, 1);
+  point.position.z = -0.59;
+  // A groove down the middle catches the light.
+  const groove = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.012, 0.4), iron);
+  groove.position.z = -0.28;
+  sword.add(blade, point, groove);
+
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 0.03), brass);
+  guard.position.z = -0.04;
+  for (const x of [-0.085, 0.085]) {
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), brass);
+    knob.position.set(x, 0, -0.04);
+    sword.add(knob);
+  }
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.12, 10).rotateX(Math.PI / 2), blue);
+  handle.position.z = 0.03;
+  const pommel = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.008, 8, 16), brass);
+  pommel.position.z = 0.105;
+  const pommelEye = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), steel);
+  pommelEye.position.z = 0.105;
+  sword.add(guard, handle, pommel, pommelEye);
+
+  return sword;
+}

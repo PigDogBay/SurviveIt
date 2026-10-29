@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { heightAt } from './terrain.js';
-import { buildBlunderbuss, buildFartGun, buildFreezeRay } from './weapon-models.js';
+import { buildBlunderbuss, buildFartGun, buildFlamethrower, buildFreezeRay, buildSword } from './weapon-models.js';
 
 const PICKUP_DISTANCE = 1.4;
 const SWITCH_TIME = 0.25;
@@ -23,12 +23,29 @@ const CLOUD_TICK = 0.5;
 const FREEZE_RANGE = 40;
 const FREEZE_TIME = 5;
 
+// Flamethrower: hold the button to spray fire. Every monster in the spray
+// takes 1 damage each time the flamethrower fires (its reload time).
+const FLAME_RANGE = 7;
+// How wide the spray is: the cosine of the angle either side of the crosshair.
+const FLAME_WIDTH = Math.cos(0.3);
+const FLAME_SPEED = 14;
+// Flames shot out each second while the button is held.
+const FLAMES_PER_SECOND = 60;
+
+// Sword: a wide swing that hits every monster within reach in front.
+const SWORD_REACH = 2.6;
+const SWORD_WIDTH = Math.cos(1);
+const SWORD_DAMAGE = 3;
+const SWING_TIME = 0.3;
+
 // In the order of the number keys that select them. The blunderbuss lies
 // just ahead of the start; the others are further out in the woods.
 const WEAPONS = [
   { name: 'Blunderbuss', spot: [-2, -7], glow: 0xffa040, build: buildBlunderbuss, muzzle: -0.62, reloadTime: 1.1, kick: 1 },
   { name: 'Fart gun', spot: [28, -32], glow: 0x9be04a, build: buildFartGun, muzzle: -0.46, reloadTime: 2, kick: 0.6 },
   { name: 'Freeze ray', spot: [-48, 52], glow: 0x7fe8ff, build: buildFreezeRay, muzzle: -0.4, reloadTime: 1.5, kick: 0.3 },
+  { name: 'Flamethrower', spot: [55, 15], glow: 0xff6a20, build: buildFlamethrower, muzzle: -0.43, reloadTime: 0.3, kick: 0.1, hold: true },
+  { name: 'Sword', spot: [14, 16], glow: 0xd8e4ff, build: buildSword, muzzle: -0.6, reloadTime: 0.6, kick: 0, swing: true },
 ];
 
 function glowTexture() {
@@ -61,6 +78,20 @@ function gasTexture() {
     ctx.fillStyle = puff;
     ctx.fillRect(0, 0, 64, 64);
   }
+  return new THREE.CanvasTexture(canvas);
+}
+
+// A soft blob of fire, white-hot in the middle. Tinted yellow to red as it burns out.
+function flameTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  const fire = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  fire.addColorStop(0, 'rgba(255,255,255,1)');
+  fire.addColorStop(0.35, 'rgba(255,255,255,0.6)');
+  fire.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = fire;
+  ctx.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(canvas);
 }
 
@@ -111,6 +142,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   WEAPONS[0].fire = fireBlunderbuss;
   WEAPONS[1].fire = fireFartGun;
   WEAPONS[2].fire = fireFreezeRay;
+  WEAPONS[3].fire = fireFlamethrower;
+  WEAPONS[4].fire = swingSword;
 
   let current = null;
   let sinceSwitch = SWITCH_TIME;
@@ -272,6 +305,90 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     beamAge = 0;
   }
 
+  // Hurts every monster within `reach` in front of the minion, unless a tree
+  // is in the way. Returns how many were hit.
+  const flatAim = new THREE.Vector3();
+  const towards = new THREE.Vector3();
+  function hitInFront(reach, width, damage) {
+    flatAim.copy(aim).setY(0).normalize();
+    let hits = 0;
+    let kills = 0;
+    for (const target of monsters.near(origin, reach)) {
+      towards.subVectors(target.monster.position, origin).setY(0);
+      const distance = towards.length();
+      towards.normalize();
+      // Right up close counts as in front, whichever way it's standing.
+      if (distance > 1 && towards.dot(flatAim) < width) continue;
+      if (collisions.rayDistance(origin, towards, distance) < distance) continue;
+      hits++;
+      if (monsters.hurt(target, damage, towards)) kills++;
+    }
+    showHits(hits, kills);
+    return hits;
+  }
+
+  function fireFlamethrower() {
+    sounds.flame();
+    hitInFront(FLAME_RANGE, FLAME_WIDTH, 1);
+  }
+
+  const flameMap = flameTexture();
+  const flames = [];
+  const hotColour = new THREE.Color(0xffa040);
+  const coolColour = new THREE.Color(0xa01800);
+  let flamesDue = 0;
+
+  // Flames shoot out of the nozzle while the button is held, rising and
+  // fading as they go. They stop at the first tree.
+  function updateFlames(delta, spraying) {
+    if (spraying) {
+      camera.getWorldPosition(origin);
+      camera.getWorldDirection(aim);
+      muzzleFlash.getWorldPosition(muzzle);
+      const life = Math.min(FLAME_RANGE, clearDistance(origin, aim, FLAME_RANGE)) / FLAME_SPEED;
+      for (flamesDue += delta * FLAMES_PER_SECOND; flamesDue >= 1; flamesDue--) {
+        const flame = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: flameMap, depthWrite: false, blending: THREE.AdditiveBlending }),
+        );
+        flame.position.copy(muzzle);
+        flame.userData.velocity = aim
+          .clone()
+          .multiplyScalar(FLAME_SPEED * (0.8 + Math.random() * 0.3))
+          .add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(2.5));
+        flame.userData.age = Math.random() * 0.03;
+        flame.userData.life = life;
+        group.add(flame);
+        flames.push(flame);
+      }
+    } else {
+      flamesDue = 0;
+    }
+
+    for (let i = flames.length - 1; i >= 0; i--) {
+      const flame = flames[i];
+      const data = flame.userData;
+      data.age += delta;
+      const burnt = data.age / data.life;
+      if (burnt >= 1) {
+        group.remove(flame);
+        flame.material.dispose();
+        flames.splice(i, 1);
+        continue;
+      }
+      data.velocity.y += delta * 3;
+      flame.position.addScaledVector(data.velocity, delta);
+      flame.scale.setScalar(0.2 + burnt * 1.8);
+      flame.material.color.lerpColors(hotColour, coolColour, burnt);
+      flame.material.opacity = 0.5 * (1 - burnt * burnt);
+      flame.material.rotation += delta * 3;
+    }
+  }
+
+  function swingSword() {
+    sounds.swish();
+    if (hitInFront(SWORD_REACH, SWORD_WIDTH, SWORD_DAMAGE) > 0) sounds.thwack();
+  }
+
   function fire() {
     if (!current || sinceSwitch < SWITCH_TIME || current.sinceShot < current.reloadTime) return;
     current.sinceShot = 0;
@@ -284,12 +401,20 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     return WEAPONS.filter((weapon) => weapon.owned);
   }
 
+  // The flamethrower keeps going for as long as the button is held.
+  let triggerHeld = false;
   window.addEventListener('mousedown', (event) => {
-    if (event.button === 0 && controls.isLocked) fire();
+    if (event.button !== 0 || !controls.isLocked) return;
+    triggerHeld = true;
+    fire();
   });
+  window.addEventListener('mouseup', (event) => {
+    if (event.button === 0) triggerHeld = false;
+  });
+  controls.addEventListener('unlock', () => (triggerHeld = false));
   window.addEventListener('keydown', (event) => {
     if (!controls.isLocked) return;
-    const index = ['Digit1', 'Digit2', 'Digit3'].indexOf(event.code);
+    const index = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(event.code);
     if (index >= 0) equip(WEAPONS[index]);
   });
   window.addEventListener('wheel', (event) => {
@@ -310,7 +435,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
         group.remove(pickup);
         equip(weapon);
         const name = weapon.name.toLowerCase();
-        showMessage(owned().length === 1 ? `You found a ${name}! Click to fire` : `You found a ${name}! Switch with 1, 2, 3`);
+        const how = weapon.hold ? 'Hold click to spray fire' : weapon.swing ? 'Click to swing' : 'Click to fire';
+        showMessage(`You found a ${name}! ${owned().length === 1 || how !== 'Click to fire' ? how : 'Switch with the number keys'}`);
       }
     }
 
@@ -319,21 +445,37 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     beamMaterial.opacity = Math.max(0, 1 - beamAge / 0.25);
     beam.visible = beamAge < 0.25;
 
+    const spraying = Boolean(current?.hold && triggerHeld && sinceSwitch >= SWITCH_TIME);
+    updateFlames(delta, spraying);
+
     if (!current) return;
     for (const weapon of WEAPONS) weapon.sinceShot += delta;
     sinceSwitch += delta;
+    if (spraying) fire();
 
     // Kick back when fired, then dip down to reload. A new weapon rises
     // into view when switched to.
     const { sinceShot, reloadTime, kick } = current;
+    const raise = 1 - Math.min(1, sinceSwitch / SWITCH_TIME);
+    muzzleFlash.visible = current.hold ? spraying : !current.swing && sinceShot < 0.05;
+    if (current.hold) flashLight.intensity = spraying ? 15 + Math.random() * 15 : 0;
+    else flashLight.intensity = current.swing ? 0 : Math.max(0, 1 - sinceShot / 0.1) * 40;
+
+    if (current.swing) {
+      // Held up and ready, then slashed down and across to the left, and back.
+      const slash =
+        sinceShot < SWING_TIME
+          ? Math.sin(((sinceShot / SWING_TIME) * Math.PI) / 2)
+          : Math.max(0, 1 - (sinceShot - SWING_TIME) / (reloadTime - SWING_TIME));
+      current.gun.position.set(-0.12 * slash, 0.02 - 0.05 * slash - 0.25 * raise, -0.05 * slash);
+      current.gun.rotation.set(1.1 - 1.3 * slash, 0.9 * slash, 0.35 - 0.9 * slash);
+      return;
+    }
+
     const recoil = Math.exp(-sinceShot * 14) * kick;
     const reload = sinceShot > 0.25 && sinceShot < reloadTime ? Math.sin((Math.PI * (sinceShot - 0.25)) / (reloadTime - 0.25)) : 0;
-    const raise = 1 - Math.min(1, sinceSwitch / SWITCH_TIME);
     current.gun.position.set(0, -0.08 * reload - 0.2 * raise, 0.08 * recoil);
     current.gun.rotation.set(0.35 * recoil - 0.3 * reload, 0, 0.4 * reload);
-
-    muzzleFlash.visible = sinceShot < 0.05;
-    flashLight.intensity = Math.max(0, 1 - sinceShot / 0.1) * 40;
   }
 
   // Where the weapons not yet picked up are, for the map.

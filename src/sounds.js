@@ -170,5 +170,49 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech };
+  // A roaring whoosh. Played again and again while the flamethrower is held,
+  // the bursts overlap into one long roar.
+  function flame() {
+    const now = start();
+    const length = 0.45;
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(500, now);
+    filter.frequency.linearRampToValueAtTime(900, now + length);
+    filter.Q.value = 0.6;
+    noiseSource(now, length).connect(filter).connect(envelope(now, 0.35, length));
+    const crackle = audio.createBiquadFilter();
+    crackle.type = 'highpass';
+    crackle.frequency.value = 3000;
+    noiseSource(now, length).connect(crackle).connect(envelope(now, 0.08, length));
+  }
+
+  // A quick swish of air as the sword swings.
+  function swish() {
+    const now = start();
+    const length = 0.25;
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(3500, now + length);
+    filter.Q.value = 2;
+    noiseSource(now, length).connect(filter).connect(envelope(now, 0.5, length));
+  }
+
+  // A meaty thwack when the sword hits a monster.
+  function thwack() {
+    const now = start();
+    const thud = audio.createOscillator();
+    thud.frequency.setValueAtTime(180, now);
+    thud.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+    thud.connect(envelope(now, 0.7, 0.2));
+    thud.start(now);
+    thud.stop(now + 0.2);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1500;
+    noiseSource(now, 0.1).connect(filter).connect(envelope(now, 0.5, 0.1));
+  }
+
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack };
 }
