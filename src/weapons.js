@@ -645,5 +645,8 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     refill,
     // Whether the minion has any weapon that uses ammo.
     needsAmmo: () => owned().some((weapon) => weapon.ammo),
+    hasAny: () => owned().length > 0,
+    // Where a weapon lies, by name.
+    where: (name) => WEAPONS.find((weapon) => weapon.name === name).pickup.position,
   };
 }

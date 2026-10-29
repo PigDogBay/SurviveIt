@@ -362,5 +362,17 @@ export function createTemple({ keys, sounds, showMessage }) {
     ],
   };
 
-  return { group, colliders, outline, update };
+  // How far the minion has got, for Gru's guidance.
+  const doorFor = (keyId) => doors.find((d) => d.keyId === keyId);
+  const switchFor = (id) => switches.find((s) => s.reveals === id);
+  return {
+    group,
+    colliders,
+    outline,
+    update,
+    doorOpen: (keyId) => doorFor(keyId).state !== 'locked',
+    doorAt: (keyId) => doorFor(keyId).position,
+    switchPressed: (id) => switchFor(id).pressed,
+    switchAt: (id) => switchFor(id).position,
+  };
 }

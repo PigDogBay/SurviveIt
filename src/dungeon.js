@@ -102,6 +102,18 @@ const onFloor = (x, z) => {
   return { x: wx, y: TEMPLE_FLOOR - DEPTH, z: wz };
 };
 
+// The top and bottom of each flight of stairs, in the world, for showing the
+// way up or down.
+export const STAIRWAYS = STAIRS.map((stairs) => {
+  const middle = stairs.top === 'z2' ? (stairs.x1 + stairs.x2) / 2 : (stairs.z1 + stairs.z2) / 2;
+  const [top, bottom] = stairs.top === 'z2' ? [[middle, stairs.z2], [middle, stairs.z1]] : [[stairs.x2, middle], [stairs.x1, middle]];
+  const at = ([x, z]) => {
+    const [wx, wz] = toWorld(x, z);
+    return { x: wx, z: wz };
+  };
+  return { top: at(top), bottom: at(bottom) };
+});
+
 // Things lying on the dungeon floors: in the first dungeon, med kits on the
 // landing and in the west room, and the freeze ray in the west room; in the
 // second, the fart gun.

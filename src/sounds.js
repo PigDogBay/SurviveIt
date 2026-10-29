@@ -484,6 +484,29 @@ export function createSounds() {
     source.stop(now + 1.6);
   }
 
+  // Gru talking: a few deep, wobbly mumbled syllables.
+  function gru() {
+    const now = start();
+    let at = now;
+    for (let i = 0; i < 5; i++) {
+      const length = 0.09 + Math.random() * 0.08;
+      const voice = audio.createOscillator();
+      voice.type = 'sawtooth';
+      const pitch = 95 + Math.random() * 40;
+      voice.frequency.setValueAtTime(pitch, at);
+      voice.frequency.linearRampToValueAtTime(pitch * (0.8 + Math.random() * 0.4), at + length);
+      // A mouth shape that changes for each syllable.
+      const mouth = audio.createBiquadFilter();
+      mouth.type = 'bandpass';
+      mouth.frequency.value = 450 + Math.random() * 600;
+      mouth.Q.value = 2;
+      voice.connect(mouth).connect(envelope(at, 0.45, length));
+      voice.start(at);
+      voice.stop(at + length + 0.02);
+      at += length + 0.03;
+    }
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -504,5 +527,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru };
 }

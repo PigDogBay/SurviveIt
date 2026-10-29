@@ -15,6 +15,7 @@ import { createScares } from './scares.js';
 import { createFelonius } from './felonius.js';
 import { createRoro } from './roro.js';
 import { combineTargets } from './targets.js';
+import { createGru } from './gru.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -101,6 +102,7 @@ const weapons = createWeapons({ camera, controls: player.controls, monsters: com
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
+const gru = createGru({ camera, keys, weapons, temple, felonius, roro, sounds });
 const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, roro });
 const facing = new THREE.Vector3();
 
@@ -174,6 +176,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!gameOver && player.controls.isLocked) monsters.update(delta, camera.position, health);
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
+  if (!gameOver && player.controls.isLocked) gru.update(camera.position);
   if (!gameOver && player.controls.isLocked) roro.update(delta, timer.getElapsed(), camera.position, health, collisions);
 
   // Keep the moon's shadows centred on the player.

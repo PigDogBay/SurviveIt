@@ -493,5 +493,7 @@ export function createRoro({ keys, sounds, showMessage }) {
     // Felonius's cage stays shut while Roro is still around.
     guarding: () => alive(),
     markers: () => (alive() ? [{ x: position.x, z: position.z }] : []),
+    awake: () => alive() && state !== 'asleep',
+    where: () => position,
   };
 }

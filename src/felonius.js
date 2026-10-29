@@ -288,5 +288,13 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, g
     return [{ x: position.x, z: position.z, kind: 'felonius' }];
   }
 
-  return { group, colliders, update, markers };
+  return {
+    group,
+    colliders,
+    update,
+    markers,
+    // 'caged', 'opening', 'leaving', 'following' or 'safe'.
+    status: () => state,
+    door: doorSpot,
+  };
 }

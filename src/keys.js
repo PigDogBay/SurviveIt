@@ -160,6 +160,10 @@ export function createKeys({ colliders, sounds, showMessage }) {
     group,
     update,
     has: (id) => carried.has(id),
+    // Whether a key has been picked up (even if it's been used since), and
+    // where it lies.
+    found: (id) => keyInfo(id).collected,
+    where: (id) => keyInfo(id).pickup.position,
     // Where the keys not yet found are, for the map. Hidden keys stay off it.
     markers: () =>
       KEYS.filter((key) => !key.collected && !key.hidden && !key.waiting).map((key) => ({ x: key.pickup.position.x, z: key.pickup.position.z, colour: hex(key.colour) })),
