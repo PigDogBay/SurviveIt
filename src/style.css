@@ -123,6 +123,15 @@ canvas {
   opacity: 1;
 }
 
+#weapons .ammo {
+  margin-left: 0.5em;
+  color: #ffd84a;
+}
+
+#weapons .ammo.empty {
+  color: #ff4a3a;
+}
+
 #flash {
   position: fixed;
   inset: 0;

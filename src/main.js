@@ -4,6 +4,7 @@ import { createForest, createFireflies } from './forest.js';
 import { createPlayer } from './player.js';
 import { createHealth } from './health.js';
 import { createMedkits } from './medkits.js';
+import { createAmmo } from './ammo.js';
 import { createMonsters } from './monsters.js';
 import { createWeapons } from './weapons.js';
 import { createSounds } from './sounds.js';
@@ -75,6 +76,8 @@ forest.colliders.push(...temple.colliders);
 
 const medkits = createMedkits(forest.colliders);
 scene.add(medkits.group);
+const ammo = createAmmo(forest.colliders);
+scene.add(ammo.group);
 
 const collisions = createCollisionGrid(forest.colliders);
 const monsters = createMonsters(collisions);
@@ -86,7 +89,7 @@ const weapons = createWeapons({ camera, controls: player.controls, monsters, col
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, weapons, keys, monsters });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
@@ -140,6 +143,7 @@ renderer.setAnimationLoop((timestamp) => {
   fireflies.update(timer.getElapsed());
   if (!dead) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
   if (!dead) weapons.update(delta, timer.getElapsed(), camera.position);
+  if (!dead) ammo.update(timer.getElapsed(), camera.position, weapons, showMessage);
   if (!dead) keys.update(timer.getElapsed(), camera.position);
   if (!dead) temple.update(delta, timer.getElapsed(), camera.position, collisions);
   minimap.update(camera.position, camera.getWorldDirection(facing));

@@ -12,7 +12,7 @@ const REVEAL_STEP = 1;
 // The map in the top-right corner. It starts covered in fog, which clears
 // wherever the minion goes. Monsters, pickups and the temple only show once
 // their part of the map has been explored.
-export function createMinimap({ colliders, temple, medkits, weapons, keys, monsters }) {
+export function createMinimap({ colliders, temple, medkits, ammo, weapons, keys, monsters }) {
   const canvas = document.getElementById('minimap');
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
   const pixels = Math.round(SIZE * pixelRatio);
@@ -116,6 +116,18 @@ export function createMinimap({ colliders, temple, medkits, weapons, keys, monst
     ctx.fillRect(cx - 2.25, cy - 0.75, 4.5, 1.5);
   }
 
+  function drawAmmo(x, z) {
+    const cx = mapX(x);
+    const cy = mapY(z);
+    ctx.fillStyle = '#4c5a2a';
+    ctx.fillRect(cx - 3, cy - 2.5, 6, 5);
+    ctx.fillStyle = '#ffd84a';
+    ctx.fillRect(cx - 3, cy + 0.5, 6, 1.2);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(cx - 3, cy - 2.5, 6, 5);
+  }
+
   function drawPlayer(position, facing) {
     ctx.save();
     ctx.translate(mapX(position.x), mapY(position.z));
@@ -142,6 +154,7 @@ export function createMinimap({ colliders, temple, medkits, weapons, keys, monst
     ctx.drawImage(ground, 0, 0, SIZE, SIZE);
     drawTemple();
     for (const { x, z } of medkits.markers()) drawMedkit(x, z);
+    for (const { x, z } of ammo.markers()) drawAmmo(x, z);
     for (const { x, z, colour } of weapons.markers()) dot(x, z, 3.5, colour, '#000');
     for (const { x, z, colour } of keys.markers()) dot(x, z, 3.5, colour, '#000');
     for (const { x, z } of monsters.markers()) dot(x, z, 2.2, '#ff3a2a');

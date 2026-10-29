@@ -40,11 +40,51 @@ const SWING_TIME = 0.3;
 
 // In the order of the number keys that select them. The blunderbuss lies
 // just ahead of the start; the others are further out in the woods.
+// `ammo` is how many shots a weapon comes with, the most it can carry, and
+// how many an ammo box adds. The flamethrower uses 1 each time it fires,
+// every 0.3 s. The sword needs no ammo.
 const WEAPONS = [
-  { name: 'Blunderbuss', spot: [-2, -7], glow: 0xffa040, build: buildBlunderbuss, muzzle: -0.62, reloadTime: 1.1, kick: 1 },
-  { name: 'Fart gun', spot: [28, -32], glow: 0x9be04a, build: buildFartGun, muzzle: -0.46, reloadTime: 2, kick: 0.6 },
-  { name: 'Freeze ray', spot: [-48, 52], glow: 0x7fe8ff, build: buildFreezeRay, muzzle: -0.4, reloadTime: 1.5, kick: 0.3 },
-  { name: 'Flamethrower', spot: [55, 15], glow: 0xff6a20, build: buildFlamethrower, muzzle: -0.43, reloadTime: 0.3, kick: 0.1, hold: true },
+  {
+    name: 'Blunderbuss',
+    spot: [-2, -7],
+    glow: 0xffa040,
+    build: buildBlunderbuss,
+    muzzle: -0.62,
+    reloadTime: 1.1,
+    kick: 1,
+    ammo: { start: 12, max: 30, box: 8 },
+  },
+  {
+    name: 'Fart gun',
+    spot: [28, -32],
+    glow: 0x9be04a,
+    build: buildFartGun,
+    muzzle: -0.46,
+    reloadTime: 2,
+    kick: 0.6,
+    ammo: { start: 6, max: 15, box: 4 },
+  },
+  {
+    name: 'Freeze ray',
+    spot: [-48, 52],
+    glow: 0x7fe8ff,
+    build: buildFreezeRay,
+    muzzle: -0.4,
+    reloadTime: 1.5,
+    kick: 0.3,
+    ammo: { start: 6, max: 15, box: 4 },
+  },
+  {
+    name: 'Flamethrower',
+    spot: [55, 15],
+    glow: 0xff6a20,
+    build: buildFlamethrower,
+    muzzle: -0.43,
+    reloadTime: 0.3,
+    kick: 0.1,
+    hold: true,
+    ammo: { start: 40, max: 100, box: 30 },
+  },
   { name: 'Sword', spot: [14, 16], glow: 0xd8e4ff, build: buildSword, muzzle: -0.6, reloadTime: 0.6, kick: 0, swing: true },
 ];
 
@@ -137,6 +177,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     weapon.gun.visible = false;
     held.add(weapon.gun);
     weapon.owned = false;
+    weapon.rounds = 0;
     weapon.sinceShot = weapon.reloadTime;
   }
   WEAPONS[0].fire = fireBlunderbuss;
@@ -151,7 +192,10 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
   const slots = document.getElementById('weapons');
   function renderSlots() {
     slots.innerHTML = WEAPONS.map((weapon, i) =>
-      weapon.owned ? `<span class="slot${weapon === current ? ' active' : ''}"><kbd>${i + 1}</kbd>${weapon.name}</span>` : '',
+      weapon.owned
+        ? `<span class="slot${weapon === current ? ' active' : ''}"><kbd>${i + 1}</kbd>${weapon.name}` +
+          `<span class="ammo${weapon.ammo && weapon.rounds === 0 ? ' empty' : ''}">${weapon.ammo ? weapon.rounds : '∞'}</span></span>`
+        : '',
     ).join('');
   }
 
@@ -389,9 +433,21 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     if (hitInFront(SWORD_REACH, SWORD_WIDTH, SWORD_DAMAGE) > 0) sounds.thwack();
   }
 
+  const outOfAmmo = (weapon) => `The ${weapon.name.toLowerCase()} is out of ammo! Find an ammo box`;
+
   function fire() {
     if (!current || sinceSwitch < SWITCH_TIME || current.sinceShot < current.reloadTime) return;
     current.sinceShot = 0;
+    if (current.ammo) {
+      if (current.rounds === 0) {
+        sounds.click();
+        showMessage(outOfAmmo(current));
+        return;
+      }
+      current.rounds--;
+      renderSlots();
+      if (current.rounds === 0) showMessage(outOfAmmo(current));
+    }
     camera.getWorldPosition(origin);
     camera.getWorldDirection(aim);
     current.fire();
@@ -432,6 +488,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
       weapon.pickupGun.rotation.y = time * 1.2;
       if (Math.hypot(playerPosition.x - pickup.position.x, playerPosition.z - pickup.position.z) < PICKUP_DISTANCE) {
         weapon.owned = true;
+        if (weapon.ammo) weapon.rounds = weapon.ammo.start;
         group.remove(pickup);
         equip(weapon);
         const name = weapon.name.toLowerCase();
@@ -445,7 +502,7 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     beamMaterial.opacity = Math.max(0, 1 - beamAge / 0.25);
     beam.visible = beamAge < 0.25;
 
-    const spraying = Boolean(current?.hold && triggerHeld && sinceSwitch >= SWITCH_TIME);
+    const spraying = Boolean(current?.hold && triggerHeld && sinceSwitch >= SWITCH_TIME && current.rounds > 0);
     updateFlames(delta, spraying);
 
     if (!current) return;
@@ -487,5 +544,28 @@ export function createWeapons({ camera, controls, monsters, collisions, sounds, 
     }));
   }
 
-  return { group, update, markers };
+  // An ammo box: tops up every weapon the minion has that isn't full.
+  // Returns what was added, such as ['Blunderbuss +8'], or null if nothing needed it.
+  function refill() {
+    const added = [];
+    for (const weapon of owned()) {
+      if (!weapon.ammo || weapon.rounds >= weapon.ammo.max) continue;
+      const amount = Math.min(weapon.ammo.box, weapon.ammo.max - weapon.rounds);
+      weapon.rounds += amount;
+      added.push(`${weapon.name} +${amount}`);
+    }
+    if (added.length === 0) return null;
+    sounds.reload();
+    renderSlots();
+    return added;
+  }
+
+  return {
+    group,
+    update,
+    markers,
+    refill,
+    // Whether the minion has any weapon that uses ammo.
+    needsAmmo: () => owned().some((weapon) => weapon.ammo),
+  };
 }

@@ -214,5 +214,29 @@ export function createSounds() {
     noiseSource(now, 0.1).connect(filter).connect(envelope(now, 0.5, 0.1));
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack };
+  // A dry click: pulling the trigger with no ammo left.
+  function click() {
+    const now = start();
+    const filter = audio.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 2000;
+    noiseSource(now, 0.03).connect(filter).connect(envelope(now, 0.4, 0.03));
+  }
+
+  // Two metal clacks, for loading up from an ammo box.
+  function reload() {
+    const now = start();
+    for (const [delay, frequency] of [
+      [0, 1800],
+      [0.14, 2600],
+    ]) {
+      const filter = audio.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = frequency;
+      filter.Q.value = 3;
+      noiseSource(now + delay, 0.06).connect(filter).connect(envelope(now + delay, 0.8, 0.06));
+    }
+  }
+
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload };
 }
