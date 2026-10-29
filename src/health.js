@@ -1,4 +1,8 @@
 export const MAX_HEALTH = 100;
+// After this long without being hurt, health slowly comes back by
+// REGEN_RATE a second.
+const REGEN_DELAY = 5;
+const REGEN_RATE = 1;
 
 // Tracks the minion's health and keeps the health bar on screen in sync.
 // Monsters call damage(); med kits call heal(). `shield.protection()` is how
@@ -10,6 +14,7 @@ export function createHealth({ onDeath, shield = { protection: () => 0, onBlock(
   const hud = document.getElementById('health');
   const flash = document.getElementById('flash');
   let health = MAX_HEALTH;
+  let sinceHurt = REGEN_DELAY;
 
   function render() {
     const fraction = health / MAX_HEALTH;
@@ -32,6 +37,7 @@ export function createHealth({ onDeath, shield = { protection: () => 0, onBlock(
     const blocked = shield.protection();
     if (blocked > 0) shield.onBlock();
     health = Math.max(0, health - amount * (1 - blocked));
+    sinceHurt = 0;
     flashScreen('hurt');
     render();
     if (health === 0) onDeath();
@@ -43,10 +49,19 @@ export function createHealth({ onDeath, shield = { protection: () => 0, onBlock(
     render();
   }
 
+  // Slowly gets better after a while without being hurt.
+  function update(delta) {
+    sinceHurt += delta;
+    if (health <= 0 || health >= MAX_HEALTH || sinceHurt < REGEN_DELAY) return;
+    health = Math.min(MAX_HEALTH, health + REGEN_RATE * delta);
+    render();
+  }
+
   render();
   return {
     damage,
     heal,
+    update,
     get value() {
       return health;
     },

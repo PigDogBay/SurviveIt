@@ -362,6 +362,10 @@ export function createTemple({ keys, sounds, showMessage }) {
     ],
   };
 
+  // Med kits in the back corners of the hall, and one in the purple chamber
+  // for the fight with Chookie.
+  const medkitSpots = [toWorld(-5.2, -7.3), toWorld(5.2, -7.3), toWorld(11.3, -6)];
+
   // How far the minion has got, for Gru's guidance.
   const doorFor = (keyId) => doors.find((d) => d.keyId === keyId);
   const switchFor = (id) => switches.find((s) => s.reveals === id);
@@ -370,6 +374,7 @@ export function createTemple({ keys, sounds, showMessage }) {
     colliders,
     outline,
     update,
+    medkitSpots,
     doorOpen: (keyId) => doorFor(keyId).state !== 'locked',
     doorAt: (keyId) => doorFor(keyId).position,
     switchPressed: (id) => switchFor(id).pressed,

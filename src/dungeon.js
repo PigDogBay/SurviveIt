@@ -116,9 +116,9 @@ export const STAIRWAYS = STAIRS.map((stairs) => {
 
 // Things lying on the dungeon floors: in the first dungeon, med kits on the
 // landing and in the west room, and the freeze ray in the west room; in the
-// second, the fart gun.
+// second, a med kit at the foot of the stairs and the fart gun.
 export const DUNGEON_PICKUPS = {
-  medkits: [onFloor(-3.3, -7.6), onFloor(-6.3, 8.9)],
+  medkits: [onFloor(-3.3, -7.6), onFloor(-6.3, 8.9), onFloor(-15.8, -1.6)],
   freezeRay: onFloor(-8.5, 6.3),
   fartGun: onFloor(-20, 11.5),
 };

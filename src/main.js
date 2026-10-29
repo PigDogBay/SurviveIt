@@ -82,7 +82,7 @@ scene.add(temple.group);
 // The temple's walls block the way just like trees do.
 forest.colliders.push(...temple.colliders);
 
-const medkits = createMedkits(forest.colliders, DUNGEON_PICKUPS.medkits);
+const medkits = createMedkits(forest.colliders, [...temple.medkitSpots, ...DUNGEON_PICKUPS.medkits.map((spot) => ({ ...spot, hidden: true }))]);
 scene.add(medkits.group);
 const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
@@ -171,6 +171,7 @@ renderer.setAnimationLoop((timestamp) => {
   player.update(delta);
   fireflies.update(timer.getElapsed());
   if (!gameOver) medkits.update(timer.getElapsed(), camera.position, health, showMessage);
+  if (!gameOver && player.controls.isLocked) health.update(delta);
   if (!gameOver) weapons.update(delta, timer.getElapsed(), camera.position);
   if (!gameOver) ammo.update(timer.getElapsed(), camera.position, weapons, showMessage);
   if (!gameOver) keys.update(timer.getElapsed(), camera.position);

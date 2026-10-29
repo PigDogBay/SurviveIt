@@ -4,7 +4,8 @@ import { heightAt, WORLD_RADIUS } from './terrain.js';
 
 const HEAL_AMOUNT = 35;
 const PICKUP_DISTANCE = 1.3;
-const COUNT = 12;
+// In the woods; more are placed in the temple and the dungeons.
+const COUNT = 24;
 
 // A white first-aid box with a red cross on every side.
 function medkitTexture() {
@@ -38,10 +39,10 @@ function isClear(x, z, colliders) {
 }
 
 // Scatters med kits through the woods. Walking into one heals the minion,
-// but only if they're hurt, so kits aren't wasted at full health. `hidden`
-// kits are placed exactly where given (with `y` as their floor), such as in
-// the dungeon, and stay off the map.
-export function createMedkits(colliders, hidden = []) {
+// but only if they're hurt, so kits aren't wasted at full health. `placed`
+// kits go exactly where given (with `y` as their floor), such as in the
+// temple; those marked `hidden`, such as in the dungeons, stay off the map.
+export function createMedkits(colliders, placed = []) {
   const random = createRandom(31);
   const geometry = new THREE.BoxGeometry(0.55, 0.38, 0.38);
   const material = new THREE.MeshStandardMaterial({
@@ -90,7 +91,7 @@ export function createMedkits(colliders, hidden = []) {
     }
     addKit(x, heightAt(x, z), z, false);
   }
-  for (const { x, y, z } of hidden) addKit(x, y, z, true);
+  for (const { x, y, z, hidden = false } of placed) addKit(x, y, z, hidden);
 
   function update(time, playerPosition, health, showMessage) {
     for (let i = kits.length - 1; i >= 0; i--) {
