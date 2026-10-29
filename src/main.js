@@ -13,6 +13,8 @@ import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
 import { createFelonius } from './felonius.js';
+import { createRoro } from './roro.js';
+import { combineTargets } from './targets.js';
 import { createCollisionGrid } from './collision.js';
 import { DUNGEON_PICKUPS, OPENINGS } from './dungeon.js';
 
@@ -81,7 +83,9 @@ const medkits = createMedkits(forest.colliders, DUNGEON_PICKUPS.medkits);
 scene.add(medkits.group);
 const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
-const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed });
+const roro = createRoro({ keys, sounds, showMessage });
+scene.add(roro.group);
+const felonius = createFelonius({ keys, keyColour: keyInfo('cage').colour, sounds, showMessage, onSafe: succeed, guarded: roro.guarding });
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
@@ -92,11 +96,12 @@ scene.add(monsters.group);
 
 const player = createPlayer(camera, document.body, collisions);
 
-const weapons = createWeapons({ camera, controls: player.controls, monsters, collisions, sounds, showMessage });
+// Weapons can hit the monsters and Roro alike.
+const weapons = createWeapons({ camera, controls: player.controls, monsters: combineTargets(monsters, roro), collisions, sounds, showMessage });
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, roro });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
@@ -169,6 +174,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!gameOver && player.controls.isLocked) monsters.update(delta, camera.position, health);
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
+  if (!gameOver && player.controls.isLocked) roro.update(delta, timer.getElapsed(), camera.position, health, collisions);
 
   // Keep the moon's shadows centred on the player.
   moonlight.target.position.copy(camera.position);

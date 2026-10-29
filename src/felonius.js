@@ -3,9 +3,9 @@ import { groundAt, UNDERGROUND } from './dungeon.js';
 import { heightAt, TEMPLE } from './terrain.js';
 
 // The cage stands in the woods near the start, its door facing the start.
-const CAGE = { x: 10.4, z: -6 };
+export const CAGE = { x: 10.4, z: -6 };
 const CAGE_RADIUS = 1.2;
-const CAGE_HEIGHT = 2.2;
+export const CAGE_HEIGHT = 2.2;
 const BARS = 18;
 // Bars this many either side of the one facing the start make the door.
 const DOOR_BARS = 1;
@@ -159,9 +159,9 @@ function buildCage(lockColour) {
 }
 
 // The rescue: Felonius is locked in a cage in the woods. The cage key opens
-// it, then he follows the minion. Once he's safe inside the temple,
-// `onSafe` is called.
-export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe }) {
+// it, but not while `guarded()` (Roro is still around), then he follows the
+// minion. Once he's safe inside the temple, `onSafe` is called.
+export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, guarded }) {
   const group = new THREE.Group();
 
   const facingStart = Math.atan2(-CAGE.x, -CAGE.z);
@@ -198,6 +198,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe })
   let opening = 0;
   let stride = 0;
   let heard = false;
+  let toldGuarded = false;
 
   function walkTowards(target, speed, delta, collisions) {
     const dx = target.x - position.x;
@@ -230,9 +231,13 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe })
         showMessage(keys.has('cage') ? 'Felonius: "Help! Get me out of here!"' : 'Felonius: "Help! Find the cage key and get me out!"');
       } else if (distance > HEAR_DISTANCE + 2) {
         heard = false;
+        toldGuarded = false;
       }
       const atDoor = Math.hypot(playerPosition.x - doorSpot.x, playerPosition.z - doorSpot.z) < DOOR_REACH;
-      if (atDoor && keys.has('cage')) {
+      if (atDoor && keys.has('cage') && guarded()) {
+        if (!toldGuarded) showMessage('Roro is guarding the cage! Defeat Roro first');
+        toldGuarded = true;
+      } else if (atDoor && keys.has('cage')) {
         keys.use('cage');
         collisions.remove(doorColliders);
         sounds.click();

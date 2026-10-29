@@ -408,6 +408,82 @@ export function createSounds() {
     tone.stop(now + length);
   }
 
+  // Roro's harsh squawk, from three throats at once. Longer for a death cry.
+  function caw(volume, length = 0.5) {
+    const now = start();
+    const output = envelope(now, 0.5 * volume, length);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1300;
+    filter.Q.value = 0.9;
+    filter.connect(output);
+    const voices = [480, 520, 610].map((pitch) => {
+      const voice = audio.createOscillator();
+      voice.type = 'sawtooth';
+      voice.frequency.setValueAtTime(pitch, now);
+      voice.frequency.linearRampToValueAtTime(pitch * 1.15, now + 0.08);
+      voice.frequency.exponentialRampToValueAtTime(pitch * 0.55, now + length);
+      voice.connect(filter);
+      return voice;
+    });
+    const rasp = audio.createOscillator();
+    rasp.frequency.value = 55;
+    const raspDepth = audio.createGain();
+    raspDepth.gain.value = 90;
+    rasp.connect(raspDepth);
+    for (const voice of voices) raspDepth.connect(voice.frequency);
+    for (const oscillator of [...voices, rasp]) {
+      oscillator.start(now);
+      oscillator.stop(now + length);
+    }
+  }
+
+  // A big whoosh of wings.
+  function flap() {
+    const now = start();
+    for (const delay of [0, 0.22]) {
+      const filter = audio.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(300, now + delay);
+      filter.frequency.linearRampToValueAtTime(900, now + delay + 0.1);
+      filter.frequency.linearRampToValueAtTime(200, now + delay + 0.2);
+      noiseSource(now + delay, 0.2).connect(filter).connect(envelope(now + delay, 0.7, 0.2));
+    }
+  }
+
+  // Something huge hitting the ground.
+  function slam() {
+    const now = start();
+    const thump = audio.createOscillator();
+    thump.frequency.setValueAtTime(90, now);
+    thump.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+    thump.connect(envelope(now, 1, 0.45));
+    thump.start(now);
+    thump.stop(now + 0.45);
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+    noiseSource(now, 0.4).connect(filter).connect(envelope(now, 0.8, 0.4));
+  }
+
+  // A slow, rumbling snore.
+  function snore() {
+    const now = start();
+    const filter = audio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 250;
+    const gain = audio.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.9);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    gain.connect(audio.destination);
+    const source = audio.createBufferSource();
+    source.buffer = noise;
+    source.connect(filter).connect(gain);
+    source.start(now);
+    source.stop(now + 1.6);
+  }
+
   // A rising, triumphant tune for winning.
   function fanfare() {
     const now = start();
@@ -428,5 +504,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore };
 }

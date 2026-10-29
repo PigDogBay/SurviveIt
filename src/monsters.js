@@ -436,5 +436,5 @@ export function createMonsters(collisions, sounds, showMessage) {
     return monsters.filter((m) => !m.dead).map((m) => ({ x: m.monster.position.x, z: m.monster.position.z }));
   }
 
-  return { group, update, raycast, hurt, near, alert, freeze, blind, ambush, markers };
+  return { group, update, raycast, hurt, near, alert, freeze, blind, ambush, markers, owns: (target) => monsters.includes(target) };
 }
