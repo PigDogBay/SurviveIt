@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { rayCircle } from './collision.js';
 import { isUnderground } from './dungeon.js';
 import { fireMaterial } from './monsters.js';
-import { CAGE, CAGE_HEIGHT } from './felonius.js';
+import { CAGE, CAGE_HEIGHT } from './nefarius.js';
 import { heightAt } from './terrain.js';
 
 const HEALTH = 80;
@@ -148,7 +148,7 @@ function snoreSprite() {
   return sprite;
 }
 
-// Chookie, the final boss. It sleeps on Felonius's cage until the minion comes
+// Chookie, the final boss. It sleeps on Nefarius's cage until the minion comes
 // near with the cage key (or attacks it), then fights. The cage can't be
 // opened until Chookie is beaten.
 export function createChookie({ keys, sounds, showMessage }) {
@@ -214,7 +214,7 @@ export function createChookie({ keys, sounds, showMessage }) {
     bossBar.classList.remove('hidden');
     caw(1, 0.9);
     sounds.flap();
-    showMessage('Chookie wakes up! Defeat Chookie to free Felonius!');
+    showMessage('Chookie wakes up! Defeat Chookie to free Nefarius!');
     // Stands up off the cage before taking off.
     position.y = heightAt(CAGE.x, CAGE.z) + CAGE_HEIGHT + 0.3;
   }
@@ -458,7 +458,7 @@ export function createChookie({ keys, sounds, showMessage }) {
       setEyes(false);
       caw(1, 1.6);
       bossBar.classList.add('hidden');
-      showMessage('You defeated Chookie! Now open the cage and free Felonius');
+      showMessage('You defeated Chookie! Now open the cage and free Nefarius');
     }
     // Chookie's own message, not "Monster defeated!".
     return false;
@@ -543,7 +543,7 @@ export function createChookie({ keys, sounds, showMessage }) {
     // Bangs don't wake Chookie: it sleeps deeply until the minion brings the key.
     alert() {},
     owns: (target) => target === self,
-    // Felonius's cage stays shut while Chookie is still around.
+    // Nefarius's cage stays shut while Chookie is still around.
     guarding: () => alive(),
     markers: () => (alive() ? [{ x: position.x, z: position.z }] : []),
     awake: () => alive() && state !== 'asleep',

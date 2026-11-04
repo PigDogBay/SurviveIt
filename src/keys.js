@@ -41,7 +41,7 @@ const KEYS = [
     gem: true,
     size: 1.3,
     spot: null,
-    found: "You found the cage key! It opens Felonius's cage. Beware of Chookie",
+    found: "You found the cage key! It opens Nefarius's cage. Beware of Chookie",
   },
 ];
 

@@ -8,7 +8,7 @@ const ARRIVED = 3;
 // Bru gives the mission and tells the minion what to do next, in a speech
 // bubble with an arrow pointing the way. What he says comes from how far the
 // minion has got, so it's always the next step, whatever order things happen.
-export function createBru({ camera, keys, weapons, temple, felonius, chookie, sounds }) {
+export function createBru({ camera, keys, weapons, temple, nefarius, chookie, sounds }) {
   const panel = document.getElementById('bru');
   const text = document.getElementById('bru-text');
   const arrow = document.getElementById('bru-arrow');
@@ -17,13 +17,13 @@ export function createBru({ camera, keys, weapons, temple, felonius, chookie, so
 
   // The next step: what Bru says, and where it is.
   function nextStep() {
-    const freed = felonius.status();
+    const freed = nefarius.status();
     if (freed === 'safe') return null;
-    if (freed !== 'caged') return ['Bring Felonius back to the temple, quick! He will follow you.', templeHall];
+    if (freed !== 'caged') return ['Bring Nefarius back to the temple, quick! He will follow you.', templeHall];
     if (keys.found('cage')) {
       if (chookie.awake()) return ['Defeat Chookie! Hit it while it is dizzy after a dive.', chookie.where()];
-      if (chookie.guarding()) return ['Take the cage key to Felonius, near where you started. Watch out for Chookie!', felonius.door];
-      return ['You beat Chookie! Now open the cage and free my boy!', felonius.door];
+      if (chookie.guarding()) return ['Take the cage key to Nefarius, near where you started. Watch out for Chookie!', nefarius.door];
+      return ['You beat Chookie! Now open the cage and free my boy!', nefarius.door];
     }
     if (temple.doorOpen('purple')) return ['The cage key is in the purple chamber. Grab it!', keys.where('cage')];
     if (keys.found('purple')) return ['Open the purple chamber in the temple with the purple key.', temple.doorAt('purple')];
@@ -37,7 +37,7 @@ export function createBru({ camera, keys, weapons, temple, felonius, chookie, so
     if (keys.found('red')) return ['Open the red chamber in the temple with the red key.', temple.doorAt('red')];
     if (temple.doorOpen('temple')) return ['Go down the stairs in the temple. The red key is hidden in the dungeon.', keys.where('red')];
     if (keys.found('temple')) return ['Take the key to the temple and unlock the door.', temple.doorAt('temple')];
-    if (!weapons.hasAny()) return ['Minion! Chookie has locked my son Felonius in a cage. Grab that blunderbuss!', weapons.where('Blunderbuss')];
+    if (!weapons.hasAny()) return ['Minion! Chookie has locked my son Nefarius in a cage. Grab that blunderbuss!', weapons.where('Blunderbuss')];
     return ['Find the temple key. It is somewhere in the woods.', keys.where('temple')];
   }
 

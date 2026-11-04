@@ -9,12 +9,12 @@ export const CAGE_HEIGHT = 2.2;
 const BARS = 18;
 // Bars this many either side of the one facing the start make the door.
 const DOOR_BARS = 1;
-// How close the minion must be to the door to unlock it, and to hear Felonius.
+// How close the minion must be to the door to unlock it, and to hear Nefarius.
 const DOOR_REACH = 2.2;
 const HEAR_DISTANCE = 6;
 const DOOR_OPEN_TIME = 1;
 
-// Felonius stays this close behind the minion, walking to keep up and
+// Nefarius stays this close behind the minion, walking to keep up and
 // running if he falls behind. If he gets stuck far behind, he catches up.
 const FOLLOW_DISTANCE = 2.2;
 const WALK_SPEED = 4.5;
@@ -26,9 +26,9 @@ const SAFE_DISTANCE = 7;
 // How much harm he can take once he's out of the cage.
 const HEALTH = 100;
 
-// Felonius, Bru's son: a small boy in a hoodie with cat ears on the hood,
+// Nefarius, Bru's son: a small boy in a hoodie with cat ears on the hood,
 // round glasses, a big smile and a backpack. He faces +z.
-function buildFelonius() {
+function buildNefarius() {
   const skin = new THREE.MeshStandardMaterial({ color: 0xf1c9a0, roughness: 0.7 });
   const hoodie = new THREE.MeshStandardMaterial({ color: 0x2f8f8f, emissive: 0x08201f, roughness: 0.8 });
   const jeans = new THREE.MeshStandardMaterial({ color: 0x2a3a6a, roughness: 0.8 });
@@ -150,7 +150,7 @@ function buildCage(lockColour) {
     cross.position.set(0, y, CAGE_RADIUS + 0.02);
     door.add(cross);
   }
-  // Below Felonius's face, so he can be seen through the bars.
+  // Below Nefarius's face, so he can be seen through the bars.
   const lockMaterial = new THREE.MeshStandardMaterial({ color: 0x7a2a5a, emissive: lockColour, emissiveIntensity: 0.15, roughness: 0.4 });
   const lock = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.18, 0.08), lockMaterial);
   lock.position.set(0, 0.8, CAGE_RADIUS + 0.06);
@@ -160,13 +160,13 @@ function buildCage(lockColour) {
   return { cage, hinge };
 }
 
-// The rescue: Felonius is locked in a cage in the woods. The cage key opens
+// The rescue: Nefarius is locked in a cage in the woods. The cage key opens
 // it, but not while `guarded()` (Chookie is still around), then he follows the
 // minion. `onFreed` is called as the cage opens. Once he's free he has
-// health, shown in `#felonius-health`: things that attack him call `hurt`,
+// health, shown in `#nefarius-health`: things that attack him call `hurt`,
 // and if it runs out `onLost` is called. Once he's safe inside the temple,
 // `onSafe` is called.
-export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, onFreed, onLost, guarded }) {
+export function createNefarius({ keys, keyColour, sounds, showMessage, onSafe, onFreed, onLost, guarded }) {
   const group = new THREE.Group();
 
   const facingStart = Math.atan2(-CAGE.x, -CAGE.z);
@@ -191,7 +191,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
   const doorSpot = new THREE.Vector3(CAGE.x + Math.sin(facingStart) * (CAGE_RADIUS + 0.5), 0, CAGE.z + Math.cos(facingStart) * (CAGE_RADIUS + 0.5));
   const outside = new THREE.Vector3(CAGE.x + Math.sin(facingStart) * (CAGE_RADIUS + 1.8), 0, CAGE.z + Math.cos(facingStart) * (CAGE_RADIUS + 1.8));
 
-  const { boy, leftArm, rightArm, leftLeg, rightLeg } = buildFelonius();
+  const { boy, leftArm, rightArm, leftLeg, rightLeg } = buildNefarius();
   const position = boy.position;
   position.set(CAGE.x, heightAt(CAGE.x, CAGE.z) + 0.2, CAGE.z);
   boy.rotation.y = facingStart;
@@ -206,7 +206,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
   let toldGuarded = false;
   let health = HEALTH;
   let hurtFlash = 0;
-  const bar = document.getElementById('felonius-health');
+  const bar = document.getElementById('nefarius-health');
   const barFill = bar.querySelector('.fill');
 
   function walkTowards(target, speed, delta, collisions) {
@@ -242,7 +242,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
       const distance = Math.hypot(playerPosition.x - CAGE.x, playerPosition.z - CAGE.z);
       if (distance < HEAR_DISTANCE && !heard) {
         heard = true;
-        showMessage(keys.has('cage') ? 'Felonius: "Help! Get me out of here!"' : 'Felonius: "Help! Find the cage key and get me out!"');
+        showMessage(keys.has('cage') ? 'Nefarius: "Help! Get me out of here!"' : 'Nefarius: "Help! Find the cage key and get me out!"');
       } else if (distance > HEAR_DISTANCE + 2) {
         heard = false;
         toldGuarded = false;
@@ -256,7 +256,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
         collisions.remove(doorColliders);
         sounds.click();
         sounds.chime();
-        showMessage('You freed Felonius! Lead him back to the temple');
+        showMessage('You freed Nefarius! Lead him back to the temple');
         state = 'opening';
         bar.classList.remove('hidden');
         onFreed();
@@ -299,7 +299,7 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
     }
   }
 
-  // Something hit Felonius. Only counts once he's out of the cage.
+  // Something hit Nefarius. Only counts once he's out of the cage.
   function hurt(amount) {
     if (state !== 'leaving' && state !== 'following') return;
     health = Math.max(0, health - amount);
@@ -314,10 +314,10 @@ export function createFelonius({ keys, keyColour, sounds, showMessage, onSafe, o
     }
   }
 
-  // The cage (while Felonius is inside) and Felonius (once he's out), for the map.
+  // The cage (while Nefarius is inside) and Nefarius (once he's out), for the map.
   function markers() {
     if (state === 'caged') return [{ x: CAGE.x, z: CAGE.z, kind: 'cage' }];
-    return [{ x: position.x, z: position.z, kind: 'felonius' }];
+    return [{ x: position.x, z: position.z, kind: 'nefarius' }];
   }
 
   return {

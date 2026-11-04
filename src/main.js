@@ -12,7 +12,7 @@ import { createKeys, keyInfo } from './keys.js';
 import { createTemple } from './temple.js';
 import { createMinimap } from './minimap.js';
 import { createScares } from './scares.js';
-import { createFelonius } from './felonius.js';
+import { createNefarius } from './nefarius.js';
 import { createChookie } from './chookie.js';
 import { combineTargets } from './targets.js';
 import { createBru } from './bru.js';
@@ -91,21 +91,21 @@ const ammo = createAmmo(forest.colliders);
 scene.add(ammo.group);
 const chookie = createChookie({ keys, sounds, showMessage });
 scene.add(chookie.group);
-const felonius = createFelonius({
+const nefarius = createNefarius({
   keys,
   keyColour: keyInfo('cage').colour,
   sounds,
   showMessage,
   onSafe: succeed,
   guarded: chookie.guarding,
-  // Freeing Felonius brings the crows. `bru` is made further down.
+  // Freeing Nefarius brings the crows. `bru` is made further down.
   onFreed() {
     crows.start();
-    bru.say('Crows! Protect Felonius and get him to the temple!', 5);
+    bru.say('Crows! Protect Nefarius and get him to the temple!', 5);
   },
-  onLost: loseFelonius,
+  onLost: loseNefarius,
 });
-const crows = createCrows({ felonius, sounds });
+const crows = createCrows({ nefarius, sounds });
 scene.add(crows.group);
 // Shooting the UFO drops the Alien egg below it, clear of any tree.
 const ufo = createUFO({
@@ -118,9 +118,9 @@ const ufo = createUFO({
   },
 });
 scene.add(ufo.group);
-scene.add(felonius.group);
+scene.add(nefarius.group);
 // The cage's bars block the way like trees do.
-forest.colliders.push(...felonius.colliders);
+forest.colliders.push(...nefarius.colliders);
 // Collecting an easter egg: Bru is pleased. `bru` is made further down.
 const easterEggs = createEasterEggs({
   sounds,
@@ -145,8 +145,8 @@ const weapons = createWeapons({ camera, controls: player.controls, monsters: com
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const bru = createBru({ camera, keys, weapons, temple, felonius, chookie, sounds });
-const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, chookie, crows });
+const bru = createBru({ camera, keys, weapons, temple, nefarius, chookie, sounds });
+const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, nefarius, chookie, crows });
 const facing = new THREE.Vector3();
 
 const menu = document.getElementById('menu');
@@ -169,16 +169,16 @@ document.getElementById('play').addEventListener('click', () => player.controls.
 document.getElementById('retry').addEventListener('click', () => window.location.reload());
 document.getElementById('again').addEventListener('click', () => window.location.reload());
 
-// The crows got Felonius: the mission has failed.
-function loseFelonius() {
+// The crows got Nefarius: the mission has failed.
+function loseNefarius() {
   gameOver = true;
   player.controls.unlock();
-  gameover.querySelector('h1').textContent = 'The crows got Felonius!';
+  gameover.querySelector('h1').textContent = 'The crows got Nefarius!';
   gameover.querySelector('p').textContent = 'Keep him safe all the way to the temple next time.';
   gameover.classList.remove('hidden');
 }
 
-// Felonius is safe in the temple: the mission is done.
+// Nefarius is safe in the temple: the mission is done.
 function succeed() {
   gameOver = true;
   sounds.fanfare();
@@ -249,7 +249,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!gameOver && player.controls.isLocked) scares.update(delta, camera.position);
   if (!gameOver && player.controls.isLocked) ufo.update(delta, timer.getElapsed());
   if (!gameOver && player.controls.isLocked) crows.update(delta, timer.getElapsed(), camera.position, health);
-  if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
+  if (!gameOver && player.controls.isLocked) nefarius.update(delta, timer.getElapsed(), camera.position, collisions);
   if (!gameOver && player.controls.isLocked) bru.update(camera.position);
   if (!gameOver && player.controls.isLocked) chookie.update(delta, timer.getElapsed(), camera.position, health, collisions);
 

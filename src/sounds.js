@@ -529,7 +529,7 @@ export function createSounds() {
     noiseSource(now, 0.05).connect(knock).connect(envelope(now, 0.6, 0.05));
   }
 
-  // Felonius crying out when he's hit: a quick, high "ow!".
+  // Nefarius crying out when he's hit: a quick, high "ow!".
   function ouch() {
     const now = start();
     const voice = audio.createOscillator();

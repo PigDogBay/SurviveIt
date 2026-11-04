@@ -7,7 +7,7 @@ const COUNT = 20;
 const ORBIT_RADIUS = [12, 28];
 const ORBIT_HEIGHT = [8, 16];
 const ORBIT_SPEED = [0.35, 0.7];
-// They only go after the minion or Felonius within this distance of the
+// They only go after the minion or Nefarius within this distance of the
 // temple, a few at a time, each resting a while between dives.
 const HUNT_DISTANCE = 60;
 const MAX_DIVING = 3;
@@ -17,7 +17,7 @@ const DIVE_GIVE_UP = 5;
 const RETURN_SPEED = 10;
 const HIT_DISTANCE = 0.9;
 const MINION_DAMAGE = 8;
-const FELONIUS_DAMAGE = 8;
+const NEFARIUS_DAMAGE = 8;
 // Shots hit a crow anywhere within this of its middle.
 const HIT_RADIUS = 0.6;
 const HEARING_DISTANCE = 50;
@@ -60,11 +60,11 @@ function buildCrow() {
   return { crow, wings };
 }
 
-// The crows that come once Felonius is free: they circle the temple, and
-// now and then swoop down at the minion or Felonius. Every weapon can bring
+// The crows that come once Nefarius is free: they circle the temple, and
+// now and then swoop down at the minion or Nefarius. Every weapon can bring
 // one down. They offer the same calls as the monsters, so `combineTargets`
 // lets the weapons hit them.
-export function createCrows({ felonius, sounds }) {
+export function createCrows({ nefarius, sounds }) {
   const group = new THREE.Group();
   const crows = [];
   let started = false;
@@ -113,21 +113,21 @@ export function createCrows({ felonius, sounds }) {
     return distance < 0.5;
   }
 
-  // The minion and Felonius, wherever they're out in the open near the temple.
+  // The minion and Nefarius, wherever they're out in the open near the temple.
   function prey(playerPosition) {
     const near = (p) => Math.hypot(p.x - TEMPLE.x, p.z - TEMPLE.z) < HUNT_DISTANCE && !isUnderground(p);
     const list = [];
     if (near(playerPosition)) list.push('minion');
-    const status = felonius.status();
-    const boy = felonius.where();
-    if ((status === 'leaving' || status === 'following') && near(new THREE.Vector3(boy.x, boy.y + 1.25, boy.z))) list.push('felonius');
+    const status = nefarius.status();
+    const boy = nefarius.where();
+    if ((status === 'leaving' || status === 'following') && near(new THREE.Vector3(boy.x, boy.y + 1.25, boy.z))) list.push('nefarius');
     return list;
   }
 
   const aim = new THREE.Vector3();
   function aimAt(target, playerPosition) {
     if (target === 'minion') return aim.set(playerPosition.x, playerPosition.y - 0.3, playerPosition.z);
-    const boy = felonius.where();
+    const boy = nefarius.where();
     return aim.set(boy.x, boy.y + 0.8, boy.z);
   }
 
@@ -179,7 +179,7 @@ export function createCrows({ felonius, sounds }) {
         flyTowards(c, point, DIVE_SPEED, delta);
         if (still && crow.position.distanceTo(point) < HIT_DISTANCE) {
           if (c.target === 'minion') health.damage(MINION_DAMAGE);
-          else felonius.hurt(FELONIUS_DAMAGE);
+          else nefarius.hurt(NEFARIUS_DAMAGE);
           c.state = 'returning';
         } else if (!still || c.diving > DIVE_GIVE_UP) {
           c.state = 'returning';

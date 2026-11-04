@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { buildCampfire, buildPot, buildRat, drawRatatouille, POT_TOP } from './camp.js';
 import { buildSkeleton, buildSkull, drawDino, SKULL_SPOT } from './dino.js';
 import { isUnderground, onDungeonFloor, UNDERGROUND } from './dungeon.js';
-import { CAGE } from './felonius.js';
+import { CAGE } from './nefarius.js';
 import { CAMP_CLEARING, DINO_CLEARING } from './forest.js';
 import { fireMaterial } from './monsters.js';
 import { heightAt, TEMPLE } from './terrain.js';
@@ -390,7 +390,7 @@ const EGGS = [
 // The T-Rex skeleton stands in a clearing near the east edge of the map; its
 // skull lies on the ground far away near the west edge.
 const SKULL_LIES = { x: -142, z: -20 };
-// The dead rat lies near Felonius's cage; the campfire and pot are in a
+// The dead rat lies near Nefarius's cage; the campfire and pot are in a
 // clearing towards the north. Cooking takes a few seconds.
 const RAT_LIES = { x: CAGE.x + 3, z: CAGE.z + 2.5 };
 const POT_REACH = 2.2;
