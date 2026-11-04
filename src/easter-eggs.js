@@ -13,7 +13,7 @@ const EGG_RADIUS = 0.3;
 const FLOAT = 0.5;
 const BOB = 0.15;
 
-// A cartoon girl inspired by Sabrina Carpenter: wavy blonde hair with
+// A cartoon girl, Sabrina Woodchipper: wavy blonde hair with
 // curtain bangs, big blue eyes and a pink smile. Drawn into the middle of
 // the egg's texture, which wraps round the egg once.
 function drawSabrina(ctx, cx, cy) {
@@ -365,7 +365,7 @@ function drawDinoEgg(ctx, cx, cy) {
 // An egg that `appears` isn't there until something brings it out. One that
 // is `dropped` has no spot: it falls from wherever `drop` is told.
 const EGGS = [
-  { name: 'Sabrina Carpenter egg', spot: [0, -12.5], colour: '#7cbce6', band: '#e86aa4', draw: drawSabrina },
+  { name: 'Sabrina Woodchipper egg', spot: [0, -12.5], colour: '#7cbce6', band: '#e86aa4', draw: drawSabrina },
   // Pops up beside the TV in the first dungeon's west room once the VHS tape
   // from the couch is played, so the show can still be seen.
   {
