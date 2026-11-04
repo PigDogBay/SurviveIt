@@ -366,7 +366,7 @@ export function createTemple({ keys, sounds, showMessage }) {
   // for the fight with Chookie.
   const medkitSpots = [toWorld(-5.2, -7.3), toWorld(5.2, -7.3), toWorld(11.3, -6)];
 
-  // How far the minion has got, for Gru's guidance.
+  // How far the minion has got, for Bru's guidance.
   const doorFor = (keyId) => doors.find((d) => d.keyId === keyId);
   const switchFor = (id) => switches.find((s) => s.reveals === id);
   return {

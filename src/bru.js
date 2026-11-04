@@ -5,17 +5,17 @@ import { TEMPLE, TEMPLE_FLOOR } from './terrain.js';
 // The arrow hides once the minion is this close to where it points.
 const ARRIVED = 3;
 
-// Gru gives the mission and tells the minion what to do next, in a speech
+// Bru gives the mission and tells the minion what to do next, in a speech
 // bubble with an arrow pointing the way. What he says comes from how far the
 // minion has got, so it's always the next step, whatever order things happen.
-export function createGru({ camera, keys, weapons, temple, felonius, chookie, sounds }) {
-  const panel = document.getElementById('gru');
-  const text = document.getElementById('gru-text');
-  const arrow = document.getElementById('gru-arrow');
-  const distanceText = document.getElementById('gru-distance');
+export function createBru({ camera, keys, weapons, temple, felonius, chookie, sounds }) {
+  const panel = document.getElementById('bru');
+  const text = document.getElementById('bru-text');
+  const arrow = document.getElementById('bru-arrow');
+  const distanceText = document.getElementById('bru-distance');
   const templeHall = { x: TEMPLE.x, y: TEMPLE_FLOOR, z: TEMPLE.z };
 
-  // The next step: what Gru says, and where it is.
+  // The next step: what Bru says, and where it is.
   function nextStep() {
     const freed = felonius.status();
     if (freed === 'safe') return null;
@@ -56,7 +56,7 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
 
   let said = null;
   let newTimeout;
-  // Something Gru says for a few seconds instead of the next step.
+  // Something Bru says for a few seconds instead of the next step.
   let aside = null;
   let asideUntil = 0;
 
@@ -68,10 +68,10 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
     panel.classList.add('new');
     clearTimeout(newTimeout);
     newTimeout = setTimeout(() => panel.classList.remove('new'), 1500);
-    sounds.gru();
+    sounds.bru();
   }
 
-  // Gru says something for `seconds`, then goes back to the next step.
+  // Bru says something for `seconds`, then goes back to the next step.
   function say(words, seconds = 4) {
     aside = words;
     asideUntil = performance.now() + seconds * 1000;
@@ -96,7 +96,7 @@ export function createGru({ camera, keys, weapons, temple, felonius, chookie, so
     }
     const [words, target] = step;
     if (words !== said) {
-      // A new instruction: Gru pipes up.
+      // A new instruction: Bru pipes up.
       said = words;
       text.textContent = words;
       popUp();

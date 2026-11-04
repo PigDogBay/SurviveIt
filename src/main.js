@@ -15,7 +15,7 @@ import { createScares } from './scares.js';
 import { createFelonius } from './felonius.js';
 import { createChookie } from './chookie.js';
 import { combineTargets } from './targets.js';
-import { createGru } from './gru.js';
+import { createBru } from './bru.js';
 import { createEasterEggs } from './easter-eggs.js';
 import { createCrows } from './crows.js';
 import { createUFO } from './ufo.js';
@@ -98,10 +98,10 @@ const felonius = createFelonius({
   showMessage,
   onSafe: succeed,
   guarded: chookie.guarding,
-  // Freeing Felonius brings the crows. `gru` is made further down.
+  // Freeing Felonius brings the crows. `bru` is made further down.
   onFreed() {
     crows.start();
-    gru.say('Crows! Protect Felonius and get him to the temple!', 5);
+    bru.say('Crows! Protect Felonius and get him to the temple!', 5);
   },
   onLost: loseFelonius,
 });
@@ -121,14 +121,14 @@ scene.add(ufo.group);
 scene.add(felonius.group);
 // The cage's bars block the way like trees do.
 forest.colliders.push(...felonius.colliders);
-// Collecting an easter egg: Gru is pleased. `gru` is made further down.
+// Collecting an easter egg: Bru is pleased. `bru` is made further down.
 const easterEggs = createEasterEggs({
   sounds,
   showMessage,
   trees: forest.colliders,
   onCollect() {
     sounds.chime();
-    gru.say('Well done on finding my treasure!');
+    bru.say('Well done on finding my treasure!');
   },
 });
 scene.add(easterEggs.group);
@@ -145,7 +145,7 @@ const weapons = createWeapons({ camera, controls: player.controls, monsters: com
 scene.add(weapons.group);
 
 const scares = createScares({ camera, monsters, sounds });
-const gru = createGru({ camera, keys, weapons, temple, felonius, chookie, sounds });
+const bru = createBru({ camera, keys, weapons, temple, felonius, chookie, sounds });
 const minimap = createMinimap({ colliders: forest.colliders, temple, medkits, ammo, weapons, keys, monsters, felonius, chookie, crows });
 const facing = new THREE.Vector3();
 
@@ -250,7 +250,7 @@ renderer.setAnimationLoop((timestamp) => {
   if (!gameOver && player.controls.isLocked) ufo.update(delta, timer.getElapsed());
   if (!gameOver && player.controls.isLocked) crows.update(delta, timer.getElapsed(), camera.position, health);
   if (!gameOver && player.controls.isLocked) felonius.update(delta, timer.getElapsed(), camera.position, collisions);
-  if (!gameOver && player.controls.isLocked) gru.update(camera.position);
+  if (!gameOver && player.controls.isLocked) bru.update(camera.position);
   if (!gameOver && player.controls.isLocked) chookie.update(delta, timer.getElapsed(), camera.position, health, collisions);
 
   // Keep the moon's shadows centred on the player.

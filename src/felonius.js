@@ -26,7 +26,7 @@ const SAFE_DISTANCE = 7;
 // How much harm he can take once he's out of the cage.
 const HEALTH = 100;
 
-// Felonius, Gru's son: a small boy in a hoodie with cat ears on the hood,
+// Felonius, Bru's son: a small boy in a hoodie with cat ears on the hood,
 // round glasses, a big smile and a backpack. He faces +z.
 function buildFelonius() {
   const skin = new THREE.MeshStandardMaterial({ color: 0xf1c9a0, roughness: 0.7 });

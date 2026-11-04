@@ -484,8 +484,8 @@ export function createSounds() {
     source.stop(now + 1.6);
   }
 
-  // Gru talking: a few deep, wobbly mumbled syllables.
-  function gru() {
+  // Bru talking: a few deep, wobbly mumbled syllables.
+  function bru() {
     const now = start();
     let at = now;
     for (let i = 0; i < 5; i++) {
@@ -622,5 +622,5 @@ export function createSounds() {
     }
   }
 
-  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, gru, clang, ouch, crow, ufo, bubble };
+  return { bang, fart, zap, chime, rumble, screech, flame, swish, thwack, click, reload, roar, growl, rip, fanfare, shatter, pop, crunch, yelp, caw, flap, slam, snore, bru, clang, ouch, crow, ufo, bubble };
 }

@@ -320,7 +320,7 @@ export function buildTakiGun() {
   return gun;
 }
 
-// Gru's "G" logo in a yellow circle, like the pocket on a minion's overalls.
+// Bru's "B" logo in a yellow circle, like the pocket on a minion's overalls.
 function logoTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 64;
@@ -333,14 +333,14 @@ function logoTexture() {
   ctx.font = 'bold 44px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('G', 32, 35);
+  ctx.fillText('B', 32, 35);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
 // The shield that comes with the sword: round and minion blue, with a steel
-// rim, a yellow ring and Gru's logo in the middle. Its front faces +z, towards
+// rim, a yellow ring and Bru's logo in the middle. Its front faces +z, towards
 // whoever is holding it.
 export function buildShield() {
   const shield = new THREE.Group();
