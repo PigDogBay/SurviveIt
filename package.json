@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:standalone": "vite build && node scripts/build-standalone.js",
     "preview": "vite preview"
   },
   "dependencies": {

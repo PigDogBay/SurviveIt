@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev`: start the Vite dev server at http://localhost:5173, which reloads when files change.
 - `npm run build`: production build into `dist/`. A warning about chunks over 500 kB comes from Three.js and is expected.
 - Uploading to itch.io: run `npm run build`, then zip the contents of `dist/` with `cd dist && zip -qr ../survive-it-itch.zip .`, so `index.html` is at the top of the zip. Upload it as an HTML project played in the browser. `vite.config.js` sets `base: './'` so asset paths are relative, because itch.io serves each game from its own sub-folder. Zips are git-ignored.
+- `npm run build:standalone`: makes `survive-it.html`, one file holding the whole game, for people who want to run it without a web server. Double-clicking `dist/index.html` does not work, because browsers block separate script files on pages opened from disk. `scripts/build-standalone.js` puts the code and styles inside the page, so it needs one JS and one CSS file in `dist/assets`, and stops with an error otherwise. The file is git-ignored.
 - There are no tests or linter yet.
 
 ## Architecture
